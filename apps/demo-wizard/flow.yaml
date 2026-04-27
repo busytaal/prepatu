@@ -1,0 +1,255 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# VFDL Flow: Appointment Booking Wizard
+#
+# This flow powers the three-step appointment booking demo app.
+# Upload this file via the Prepatu Dashboard (Flows tab) and copy the
+# resulting Flow ID into the demo app's setup screen.
+#
+# HOW IT WORKS
+# ─────────────────────────────────────────────────────────────────────────────
+# 1. The voice agent greets the user and collects their name + email (Step 1).
+#    When it has both, it calls `save_contact(full_name, email)` — a tool call
+#    that the flow engine intercepts to save the values as flow variables, then
+#    automatically transitions to the next state.
+#
+# 2. In Step 2, the agent collects appointment details (date, time slot, service
+#    type) and calls `save_appointment(date, time_slot, service)`.
+#
+# 3. In Step 3, the agent reads the summary back to the user and asks for
+#    confirmation. The user says "yes" → `confirm_booking()` fires → flow moves
+#    to the `done` state. If they want changes → `restart_booking()` → back to
+#    step 1.
+#
+# KEY CONCEPTS TO UNDERSTAND
+# ─────────────────────────────────────────────────────────────────────────────
+# • Each `state` has a `ui` section (what the frontend renders) and an `agent`
+#   section (what the AI voice assistant says/does).
+# • The `transitions.on_tool_call` mapping says: "when the LLM calls THIS tool,
+#   move to THAT state."
+# • The `tools` section underneath each state defines what arguments each tool
+#   accepts — this is how the AI knows what data to extract from the conversation.
+# • When the AI calls a tool (e.g. save_contact(full_name="Alice", email="a@b.com")),
+#   the engine automatically sends a `field_update` message to the browser so the
+#   corresponding form fields light up with the captured value.
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: appointment-booking
+version: "1.0.0"
+description: "Three-step voice appointment booking wizard — demo app"
+initial_state: collect_contact
+
+variables:
+  full_name:
+    type: string
+    required: true
+  email:
+    type: string
+    required: true
+  date:
+    type: string
+    required: true
+  time_slot:
+    type: string
+    required: true
+  service:
+    type: string
+    required: true
+
+settings:
+  base_system_prompt: |
+    You are a warm, friendly appointment booking assistant called "Aria" for ServiceDesk.
+    Your goal is to guide the user through a three-step booking wizard using natural
+    conversation. Be concise and friendly. Always confirm what you understood before
+    calling a tool. If the user says something ambiguous, ask for clarification.
+    Never make up information the user hasn't provided.
+
+states:
+
+  # ── Step 1: Contact Details ────────────────────────────────────────────────
+  collect_contact:
+    ui:
+      artifact_type: form
+      prompt: "Hi! Let's start with your contact details."
+      fields:
+        - id: full_name
+          label: Full Name
+          type: text
+          placeholder: "e.g. Jane Smith"
+        - id: email
+          label: Email Address
+          type: email
+          placeholder: "jane@example.com"
+
+    agent:
+      prompt: |
+        You are on Step 1 of 3: Contact Details.
+        Greet the user warmly and ask for their full name and email address.
+        IMPORTANT: As soon as the user gives you their name, IMMEDIATELY call
+        `capture_name` — do not wait for the email first. This updates the
+        form field in real time.
+        Similarly, as soon as you have their email, call `capture_email`.
+        Once you have BOTH name and email confirmed, call `save_contact` to
+        proceed to the next step.
+      tools:
+        - capture_name
+        - capture_email
+        - save_contact
+
+    tools:
+      capture_name:
+        description: "Call IMMEDIATELY when the user tells you their name — updates the name field in real time. Do NOT wait for email first."
+        speech_cue: "Got it, I've noted your name! Now could you please share your email address?"
+        parameters:
+          full_name:
+            type: string
+            description: "The user's full name as spoken"
+            required: true
+      capture_email:
+        description: "Call IMMEDIATELY when the user tells you their email — updates the email field in real time."
+        # No speech_cue here — the engine auto-generates from remaining unfilled fields.
+        parameters:
+          email:
+            type: string
+            description: "The user's email address"
+            required: true
+      save_contact:
+        description: "Call once you have BOTH name and email confirmed — saves both and moves to appointment details."
+        parameters:
+          full_name:
+            type: string
+            description: "The user's full name (first and last)"
+            required: true
+          email:
+            type: string
+            description: "The user's email address"
+            required: true
+
+    transitions:
+      on_tool_call:
+        save_contact: collect_appointment
+        # capture_name and capture_email are intentionally absent here —
+        # the flow engine will set the variable and emit field_update
+        # without any state transition.
+      on_ui_event: {}
+      on_action: {}
+
+  # ── Step 2: Appointment Details ────────────────────────────────────────────
+  collect_appointment:
+    ui:
+      artifact_type: form
+      prompt: "Great, {full_name}! Now let's pick your appointment."
+      fields:
+        - id: date
+          label: Preferred Date
+          type: text
+          placeholder: "e.g. May 20 or next Monday"
+        - id: time_slot
+          label: Time Slot
+          type: text
+          placeholder: "9 AM, 10 AM, 11 AM, 2 PM, 3 PM, or 4 PM"
+        - id: service
+          label: Service Type
+          type: text
+          placeholder: "consultation, support, or demo"
+
+    agent:
+      prompt: |
+        You are on Step 2 of 3: Appointment Details.
+        You already have the user's name ({full_name}) and email ({email}) from step 1.
+        Ask them for:
+          1. Their preferred date (any natural date expression is fine)
+          2. A time slot (available: 9 AM, 10 AM, 11 AM, 2 PM, 3 PM, 4 PM)
+          3. The type of service (consultation, support, or demo)
+        Once you have all three, call `save_appointment`.
+        If the user provides all three in one utterance, confirm them and call the tool immediately.
+      tools:
+        - save_appointment
+
+    tools:
+      save_appointment:
+        description: "Save appointment date, time slot, and service type, then move to review."
+        parameters:
+          date:
+            type: string
+            description: "The preferred appointment date expressed naturally, e.g. 'May 20' or 'next Tuesday'"
+            required: true
+          time_slot:
+            type: string
+            description: "The time slot, e.g. '2 PM' or '10 AM'"
+            required: true
+          service:
+            type: string
+            description: "The service type"
+            required: true
+            enum: ["consultation", "support", "demo"]
+
+    transitions:
+      on_tool_call:
+        save_appointment: review
+      on_ui_event: {}
+      on_action: {}
+
+  # ── Step 3: Review & Confirm ───────────────────────────────────────────────
+  review:
+    ui:
+      artifact_type: card
+      prompt: |
+        Booking Summary
+
+        Name:    {full_name}
+        Email:   {email}
+        Date:    {date}
+        Time:    {time_slot}
+        Service: {service}
+
+    agent:
+      prompt: |
+        You are on Step 3 of 3: Review and Confirm.
+        Read the booking details back to the user:
+          Name: {full_name}
+          Email: {email}
+          Date: {date} at {time_slot}
+          Service: {service}
+        Ask them to confirm or if they'd like to change anything.
+        Call `confirm_booking` if they confirm.
+        Call `restart_booking` if they want to start over.
+      tools:
+        - confirm_booking
+        - restart_booking
+
+    tools:
+      confirm_booking:
+        description: "The user confirmed all details — finalize the booking and show the success screen."
+      restart_booking:
+        description: "The user wants to make changes — restart the flow from step 1."
+
+    transitions:
+      on_tool_call:
+        confirm_booking: done
+        restart_booking: collect_contact
+      on_ui_event: {}
+      on_action: {}
+
+  # ── Done ───────────────────────────────────────────────────────────────────
+  done:
+    ui:
+      artifact_type: card
+      prompt: |
+        Booking Confirmed!
+
+        Thank you, {full_name}!
+        Your {service} is booked for {date} at {time_slot}.
+        A confirmation will be sent to {email}.
+
+    agent:
+      prompt: |
+        The booking is confirmed! Enthusiastically congratulate {full_name} and tell them
+        their {service} appointment on {date} at {time_slot} is all set.
+        Mention that a confirmation will be sent to {email}.
+        Wish them a great day and let them know they can close the page.
+      tools: []
+
+    transitions:
+      on_tool_call: {}
+      on_ui_event: {}
+      on_action: {}

@@ -1,0 +1,245 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# VFDL Flow: 10 Questions
+#
+# Upload via the Prepatu Dashboard (Flows tab) and paste the Flow ID into
+# the game's setup screen.
+#
+# HOW IT WORKS
+# ─────────────────────────────────────────────────────────────────────────────
+# 1. AI secretly picks a thing and calls begin_game(secret_thing).
+# 2. User asks up to 10 yes/no questions. After each answer the AI calls
+#    record_answer(last_answer, questions_asked) — browser score card updates live.
+# 3. User makes a direct guess at any time:
+#      Correct → guess_correct  → won state
+#      Wrong   → guess_wrong    → stays in playing (speech_cue keeps it going)
+# 4. All 10 questions used without a correct guess → out_of_questions → lost.
+# 5. Both won and lost offer play_again → loops back to setup.
+#
+# VFDL CONCEPTS SHOWN
+# ─────────────────────────────────────────────────────────────────────────────
+# • No forms — all UI is card-based.
+# • record_answer and guess_wrong have NO on_tool_call entry — the engine
+#   stays in `playing` and the speech_cue / auto-cue drives the next turn.
+# • questions_asked and last_answer are flow variables — emitted as
+#   flow_variable events so the browser score card updates in real time.
+# ──────────────────────────────────────────────────────────────────────────────
+
+id: ten-questions
+version: "1.0.0"
+description: "Classic 10 Questions voice game — AI thinks, user guesses"
+initial_state: setup
+
+variables:
+  secret_thing:
+    type: string
+    required: true
+  questions_asked:
+    type: string
+    required: false
+  last_answer:
+    type: string
+    required: false
+
+settings:
+  base_system_prompt: |
+    You are the host of a 10 Questions game. You have secretly chosen something —
+    an animal, celebrity, movie, food, place, or everyday object.
+    The player asks yes/no questions and you answer honestly and briefly.
+    Never reveal the secret unless they guess it correctly or the game ends.
+    Be playful, encouraging, and keep your answers snappy (1–2 sentences max).
+
+states:
+
+  # ── Setup: AI picks the secret thing ──────────────────────────────────────
+  setup:
+    ui:
+      artifact_type: card
+      prompt: |
+        🎯  10 Questions
+
+        I'm thinking of something…
+        Ask yes/no questions to figure out what it is.
+        You get 10 questions — make them count!
+
+    agent:
+      prompt: |
+        Start a new round of 10 Questions.
+        Secretly pick ONE specific thing — animal, celebrity, film, food, place, or
+        everyday object. Be specific (e.g. "a flamingo", not "a bird").
+        Do NOT reveal your choice to the player.
+        Call `begin_game` with your secret, then warmly welcome the player and
+        explain the rules: up to 10 yes/no questions, guess anytime.
+      tools:
+        - begin_game
+
+    tools:
+      begin_game:
+        description: "Lock in your secret choice and start the game. Never reveal this to the player."
+        parameters:
+          secret_thing:
+            type: string
+            description: "The specific thing you are secretly thinking of."
+            required: true
+
+    transitions:
+      on_tool_call:
+        begin_game: playing
+      on_ui_event: {}
+      on_action: {}
+
+  # ── Playing: main game loop ────────────────────────────────────────────────
+  playing:
+    ui:
+      artifact_type: card
+      prompt: |
+        ❓  Question {questions_asked} / 10
+
+        Last answer: {last_answer}
+
+    agent:
+      prompt: |
+        You are hosting 10 Questions. Your secret: {secret_thing}
+        Questions asked so far: {questions_asked} / 10.
+
+        For each player input:
+        • YES/NO QUESTION — Answer honestly in one sentence, then IMMEDIATELY
+          call `record_answer` with your answer and the new question count.
+        • CORRECT GUESS — Call `guess_correct` (do NOT call record_answer first).
+        • WRONG GUESS — Call `guess_wrong` with their incorrect guess.
+        • AFTER 10 QUESTIONS with no correct guess — Call `out_of_questions`.
+
+        Always call the matching tool — never skip it.
+      tools:
+        - record_answer
+        - guess_correct
+        - guess_wrong
+        - out_of_questions
+
+    tools:
+      record_answer:
+        description: "Call after answering each yes/no question. Updates the score card."
+        parameters:
+          last_answer:
+            type: string
+            description: "The yes/no answer you just gave, e.g. 'Yes!' or 'No, it's not alive.'"
+            required: true
+          questions_asked:
+            type: string
+            description: "Running total of questions asked (1–10)."
+            required: true
+
+      guess_correct:
+        description: "The player guessed correctly. Triggers the win state."
+        parameters: {}
+
+      guess_wrong:
+        description: "The player guessed wrong — stay in the game, keep going."
+        speech_cue: "Nope, that's not it! You still have questions left — keep digging!"
+        parameters:
+          wrong_guess:
+            type: string
+            description: "What the player incorrectly guessed."
+            required: true
+
+      out_of_questions:
+        description: "Player used all 10 questions without a correct guess."
+        parameters: {}
+
+    transitions:
+      on_tool_call:
+        guess_correct: won
+        out_of_questions: lost
+        # record_answer and guess_wrong absent — engine stays in `playing`
+      on_ui_event: {}
+      on_action: {}
+
+  # ── Won ────────────────────────────────────────────────────────────────────
+  won:
+    ui:
+      artifact_type: card
+      prompt: |
+        🎉  You got it!
+
+        It was: {secret_thing}
+        Questions used: {questions_asked} / 10
+
+    agent:
+      prompt: |
+        The player correctly guessed "{secret_thing}" in {questions_asked} question(s)!
+        Congratulate them enthusiastically. If they used very few questions, mention
+        how impressive that is.
+        Ask if they want to play again. Call `play_again` if yes, `end_game` if no.
+      tools:
+        - play_again
+        - end_game
+
+    tools:
+      play_again:
+        description: "Start a new round with a fresh secret."
+        parameters: {}
+      end_game:
+        description: "Player is done — end the session."
+        parameters: {}
+
+    transitions:
+      on_tool_call:
+        play_again: setup
+        end_game: done
+      on_ui_event: {}
+      on_action: {}
+
+  # ── Lost ───────────────────────────────────────────────────────────────────
+  lost:
+    ui:
+      artifact_type: card
+      prompt: |
+        😅  Out of questions!
+
+        It was: {secret_thing}
+
+        Better luck next time!
+
+    agent:
+      prompt: |
+        The player used all 10 questions without guessing "{secret_thing}".
+        Reveal the answer with a dramatic, fun reaction. Make them feel good about
+        how close they got. Offer to play again.
+        Call `play_again` if yes, `end_game` if no.
+      tools:
+        - play_again
+        - end_game
+
+    tools:
+      play_again:
+        description: "Start a new round with a fresh secret."
+        parameters: {}
+      end_game:
+        description: "Player is done — end the session."
+        parameters: {}
+
+    transitions:
+      on_tool_call:
+        play_again: setup
+        end_game: done
+      on_ui_event: {}
+      on_action: {}
+
+  # ── Done ───────────────────────────────────────────────────────────────────
+  done:
+    ui:
+      artifact_type: card
+      prompt: |
+        👋  Thanks for playing!
+
+        Refresh the page to start a new game anytime.
+
+    agent:
+      prompt: |
+        Give a warm, brief goodbye. Thank the player for playing 10 Questions.
+        Let them know they can refresh the page to play again.
+      tools: []
+
+    transitions:
+      on_tool_call: {}
+      on_ui_event: {}
+      on_action: {}

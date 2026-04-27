@@ -1,0 +1,54 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Node
+node_modules/
+
+# Environment secrets — never commit
+.env
+.env.local
+.env.*.local
+
+# Databases
+*.sqlite
+*.db
+
+# macOS
+.DS_Store
+
+# IDEs
+.idea/
+*.sw?
+
+# Expo / React Native build artefacts
+mobile/.expo/
+mobile/android/build/
+mobile/android/app/build/
+mobile/android/.gradle/
+mobile/ios/Pods/
+mobile/ios/build/
+
+
+plans.md/*
+
+*.log
+
+
+# New monorepo paths
+apps/ielts/mobile/.expo/
+apps/ielts/mobile/android/.gradle/
+apps/ielts/mobile/android/.kotlin/
+apps/ielts/mobile/android/app/build/
+apps/ielts/mobile/android/build/
+
+# Runtime artifacts
+session_store.db
+app.log

@@ -1,0 +1,116 @@
+id: onboarding
+version: "2.0.0"
+initial_state: intro
+description: "First-run experience: warm welcome → collect name + date of birth → position orb."
+
+settings:
+  base_system_prompt: |
+    You are a warm, concise onboarding guide for Prepatu, an IELTS speaking practice app.
+    Keep every spoken response to 1–2 sentences maximum.
+    Use the user's name naturally once you know it.
+    Never mention that you are an AI or describe yourself as a language model.
+
+variables:
+  first_name:
+    type: string
+    required: true
+  date_of_birth:
+    type: string
+    required: true
+
+states:
+  intro:
+    agent:
+      prompt: |
+        Greet the user with a single warm, friendly sentence, for example:
+        "Hi there! I'm your IELTS speaking guide — let's get you set up in just a moment."
+        Then immediately call `begin_setup`.
+      tools:
+        - begin_setup
+    tools:
+      begin_setup:
+        description: "Advance to personal data collection after the greeting."
+        parameters: {}
+    transitions:
+      on_tool_call:
+        begin_setup: collect_info
+
+  collect_info:
+    ui:
+      artifact_type: form
+      fields:
+        - id: first_name
+          type: text
+          label: "First name"
+          placeholder: "Your name"
+          required: true
+        - id: date_of_birth
+          type: text
+          label: "Date of birth"
+          placeholder: "e.g. 15 March 1995"
+          required: true
+    agent:
+      prompt: |
+        Ask the user for their first name.
+        When they tell you, call `save_name` immediately.
+        Then ask for their date of birth.
+        When they tell you, call `save_dob` with it.
+        Once both are saved, confirm: "So you're {first_name}, born on {date_of_birth} — is that right?"
+        If they say yes, call `finish_setup`.
+        If they want to correct anything, ask again and call the appropriate save tool.
+      tools:
+        - save_name
+        - save_dob
+        - finish_setup
+    tools:
+      save_name:
+        description: "Save the user's first name captured from speech."
+        parameters:
+          first_name:
+            type: string
+            description: "The user's first name, as spoken."
+            required: true
+      save_dob:
+        description: "Save the user's date of birth captured from speech."
+        parameters:
+          date_of_birth:
+            type: string
+            description: "Date of birth as spoken, e.g. '15 March 1995' or '1995-03-15'."
+            required: true
+      finish_setup:
+        description: "User has confirmed their name and date of birth. Advance to the next step."
+        parameters: {}
+    transitions:
+      on_tool_call:
+        finish_setup: move_orb
+      on_ui_event:
+        form_submit: move_orb
+
+  move_orb:
+    ui:
+      artifact_type: orb_layout
+      position: center_bottom
+    agent:
+      prompt: |
+        Say one short warm closing line, e.g.
+        "You're all set, {first_name} — enjoy your practice!"
+        Then immediately call `finish_onboarding`.
+      tools:
+        - finish_onboarding
+    tools:
+      finish_onboarding:
+        description: "Mark onboarding complete and navigate to the main app."
+        parameters: {}
+    transitions:
+      on_tool_call:
+        finish_onboarding: end_flow
+
+  end_flow:
+    ui:
+      artifact_type: navigate
+      screen: Home
+    agent:
+      prompt: |
+        Stay silent. You are done.
+      tools: []
+    transitions: {}

@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prepatu — Dashboard</title>
+  <style>
+    :root {
+      --bg:          #0A0A14;
+      --surface:     #12121E;
+      --elevated:    #1A1A28;
+      --card:        #1E1E30;
+      --border:      #2E2E44;
+      --primary:     #4A90E2;
+      --primary-dim: #2d5f9e;
+      --green:       #3ECF6A;
+      --amber:       #E8A020;
+      --red:         #E24A6A;
+      --text:        #E8E8F0;
+      --text-muted:  #6B6B80;
+      --radius:      8px;
+      --radius-lg:   12px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    [hidden] { display: none !important; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* ── Auth ───────────────────────────────────────────────────────────── */
+
+    .auth-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .auth-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .brand { text-align: center; margin-bottom: 32px; }
+    .brand-name { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+    .brand-sub { color: var(--text-muted); font-size: 13px; display: block; margin-top: 4px; }
+
+    .auth-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 28px;
+    }
+
+    .auth-tab {
+      flex: 1;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--text-muted);
+      padding: 10px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-bottom: -1px;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .auth-tab.active { color: var(--text); border-bottom-color: var(--primary); }
+
+    /* ── App layout ─────────────────────────────────────────────────────── */
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      padding: 0 24px;
+      height: 56px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .topbar-brand { font-weight: 700; font-size: 16px; letter-spacing: -0.3px; }
+
+    .topbar-nav { display: flex; gap: 4px; flex: 1; }
+
+    .nav-tab {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      padding: 6px 14px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .nav-tab:hover { background: var(--elevated); color: var(--text); }
+    .nav-tab.active { background: var(--primary); color: #fff; }
+
+    .main-content { max-width: 860px; margin: 0 auto; padding: 36px 24px; }
+
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    /* ── Pane header ────────────────────────────────────────────────────── */
+
+    .pane-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .pane-title { font-size: 20px; font-weight: 600; }
+    .pane-desc  { color: var(--text-muted); margin-top: 4px; font-size: 13px; }
+    .pane-desc code {
+      background: var(--elevated);
+      border: 1px solid var(--border);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
+    /* ── Cards & lists ──────────────────────────────────────────────────── */
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      margin-bottom: 12px;
+    }
+
+    .card-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .list-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .list-item.revoked { opacity: 0.45; }
+
+    .item-main { flex: 1; min-width: 0; }
+    .item-title { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .item-sub   { color: var(--text-muted); font-size: 12px; margin-top: 2px; }
+
+    .badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-weight: 500;
+    }
+
+    .badge-green  { background: color-mix(in srgb, var(--green) 15%, transparent); color: var(--green); }
+    .badge-muted  { background: var(--elevated); color: var(--text-muted); }
+    .badge-amber  { background: color-mix(in srgb, var(--amber) 15%, transparent); color: var(--amber); }
+    .badge-red    { background: color-mix(in srgb, var(--red) 15%, transparent); color: var(--red); }
+
+    /* ── Forms ──────────────────────────────────────────────────────────── */
+
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 6px; font-weight: 500; }
+
+    .input {
+      width: 100%;
+      background: var(--elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 14px;
+      padding: 9px 12px;
+      outline: none;
+      transition: border-color 0.15s;
+      font-family: inherit;
+    }
+
+    .input:focus { border-color: var(--primary); }
+    .input.mono { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; }
+
+    select.input { appearance: none; cursor: pointer; }
+
+    .form-row { display: flex; gap: 8px; align-items: center; }
+
+    /* ── Buttons ────────────────────────────────────────────────────────── */
+
+    button { cursor: pointer; font-family: inherit; font-size: 14px; border-radius: var(--radius); border: none; }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+      padding: 9px 18px;
+      font-weight: 500;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+
+    .btn-primary:hover { background: var(--primary-dim); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-ghost {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 8px 14px;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .btn-ghost:hover { border-color: var(--text-muted); color: var(--text); }
+
+    .btn-danger {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--red);
+      padding: 6px 12px;
+      font-size: 13px;
+      transition: background 0.15s;
+    }
+
+    .btn-danger:hover { background: color-mix(in srgb, var(--red) 10%, transparent); border-color: var(--red); }
+
+    .btn-icon {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      padding: 6px 8px;
+      font-size: 15px;
+      line-height: 1;
+      transition: color 0.15s;
+    }
+
+    .btn-icon:hover { color: var(--text); }
+
+    .w-full { width: 100%; }
+
+    /* ── Banner / alerts ────────────────────────────────────────────────── */
+
+    .banner {
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      position: relative;
+    }
+
+    .banner-green { background: color-mix(in srgb, var(--green) 10%, transparent); border: 1px solid color-mix(in srgb, var(--green) 30%, transparent); }
+    .banner code  { background: var(--elevated); padding: 3px 8px; border-radius: 4px; font-size: 12px; font-family: 'SF Mono', monospace; word-break: break-all; }
+    .banner-note  { font-size: 12px; color: var(--text-muted); width: 100%; }
+    .banner-dismiss { background: none; border: none; color: var(--text-muted); font-size: 16px; margin-left: auto; }
+
+    .error-msg {
+      background: color-mix(in srgb, var(--red) 10%, transparent);
+      border: 1px solid color-mix(in srgb, var(--red) 30%, transparent);
+      color: var(--red);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      font-size: 13px;
+      margin-bottom: 14px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--text-muted);
+      background: var(--surface);
+      border: 1px dashed var(--border);
+      border-radius: var(--radius-lg);
+    }
+
+    .empty-state .empty-icon { font-size: 32px; margin-bottom: 12px; }
+    .empty-state p { font-size: 13px; }
+
+    /* ── Credits stats ──────────────────────────────────────────────────── */
+
+    .credits-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+    }
+
+    .stat-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+    .stat-value { font-size: 28px; font-weight: 600; }
+    .stat-value.green { color: var(--green); }
+    .stat-value.amber { color: var(--amber); }
+
+    /* ── Provider section ───────────────────────────────────────────────── */
+
+    .provider-group { margin-bottom: 24px; }
+    .provider-group:last-child { margin-bottom: 0; }
+    .provider-title { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 16px; }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+
+    /* ── Copy button ────────────────────────────────────────────────────── */
+    .copy-btn {
+      background: var(--elevated);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 5px 12px;
+      border-radius: var(--radius);
+      font-size: 12px;
+    }
+
+    .copy-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+    /* ── YAML viewer ────────────────────────────────────────────────────── */
+
+    .yaml-preview {
+      background: var(--elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 12px;
+      overflow-x: auto;
+      white-space: pre;
+      color: var(--text-muted);
+      max-height: 240px;
+      overflow-y: auto;
+    }
+
+    /* ── Responsive ─────────────────────────────────────────────────────── */
+    @media (max-width: 600px) {
+      .credits-grid { grid-template-columns: 1fr; }
+      .pane-header { flex-direction: column; }
+      .topbar-nav { gap: 0; }
+      .nav-tab { padding: 6px 10px; font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Auth screen ──────────────────────────────────────────────────────────── -->
+<div id="auth-screen" class="auth-wrap">
+  <div class="auth-card">
+    <div class="brand">
+      <span class="brand-name">Prepatu</span>
+      <span class="brand-sub">Cloud Dashboard</span>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="showAuthTab('login')">Sign In</button>
+      <button class="auth-tab" onclick="showAuthTab('signup')">Sign Up</button>
+    </div>
+
+    <form id="login-form" onsubmit="doLogin(event)">
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="login-email" class="input" required placeholder="you@example.com">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="login-password" class="input" required placeholder="••••••••">
+      </div>
+      <div id="login-error" class="error-msg" hidden></div>
+      <button type="submit" class="btn-primary w-full">Sign In</button>
+    </form>
+
+    <form id="signup-form" hidden onsubmit="doSignup(event)">
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="signup-email" class="input" required placeholder="you@example.com">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="signup-password" class="input" required placeholder="Min. 8 characters" minlength="8">
+      </div>
+      <div id="signup-error" class="error-msg" hidden></div>
+      <button type="submit" class="btn-primary w-full">Create Account — $2.00 free credit</button>
+    </form>
+  </div>
+</div>
+
+<!-- ── App screen ───────────────────────────────────────────────────────────── -->
+<div id="app-screen" hidden>
+  <header class="topbar">
+    <span class="topbar-brand">Prepatu</span>
+    <nav class="topbar-nav">
+      <button class="nav-tab active" data-tab="apikeys" onclick="switchTab('apikeys')">API Keys</button>
+      <button class="nav-tab" data-tab="flows" onclick="switchTab('flows')">Flows</button>
+      <button class="nav-tab" data-tab="providers" onclick="switchTab('providers')">Providers</button>
+      <button class="nav-tab" data-tab="credits" onclick="switchTab('credits')">Credits</button>
+    </nav>
+    <button class="btn-ghost" onclick="doLogout()">Sign Out</button>
+  </header>
+
+  <main class="main-content">
+
+    <!-- ── API Keys ── -->
+    <div id="tab-apikeys" class="tab-pane active">
+      <div class="pane-header">
+        <div>
+          <h1 class="pane-title">API Keys</h1>
+          <p class="pane-desc">Use these keys with the SDK: <code>Prepatu.createAgent({ apiKey })</code></p>
+        </div>
+        <button class="btn-primary" onclick="openCreateKey()">+ New Key</button>
+      </div>
+
+      <div id="new-key-banner" class="banner banner-green" hidden>
+        <strong>Key created — copy it now:</strong>
+        <code id="new-key-value"></code>
+        <button class="copy-btn" onclick="copyNewKey()">Copy</button>
+        <p class="banner-note">This is the only time the full key is shown. Store it securely.</p>
+        <button class="banner-dismiss" onclick="document.getElementById('new-key-banner').hidden=true">✕</button>
+      </div>
+
+      <div id="create-key-form" class="card" hidden>
+        <div class="form-row">
+          <input id="key-label" type="text" class="input" placeholder="Label (e.g. production, staging)" style="flex:1">
+          <button class="btn-primary" onclick="createApiKey()">Create</button>
+          <button class="btn-ghost" onclick="cancelCreateKey()">Cancel</button>
+        </div>
+      </div>
+
+      <div id="keys-list" class="card-list">
+        <div class="empty-state"><div class="empty-icon">🔑</div><p>No API keys yet</p></div>
+      </div>
+    </div>
+
+    <!-- ── Flows ── -->
+    <div id="tab-flows" class="tab-pane">
+      <div class="pane-header">
+        <div>
+          <h1 class="pane-title">Flows</h1>
+          <p class="pane-desc">Upload VFDL YAML flows. Pass the flow ID when starting a session.</p>
+        </div>
+        <button class="btn-primary" onclick="openCreateFlow()">+ New Flow</button>
+      </div>
+
+      <div id="create-flow-form" class="card" hidden>
+        <div class="field">
+          <label>Flow Name</label>
+          <input id="flow-name" type="text" class="input" placeholder="e.g. booking-wizard">
+        </div>
+        <div class="field">
+          <label>YAML Content</label>
+          <textarea id="flow-yaml" class="input mono" rows="14"
+            placeholder="id: my-flow&#10;version: &quot;1.0.0&quot;&#10;initial_state: greet&#10;settings:&#10;  base_system_prompt: |&#10;    You are a helpful assistant.&#10;states:&#10;  greet:&#10;    agent:&#10;      prompt: &quot;Greet the user.&quot;&#10;      tools: []&#10;    transitions: {}"></textarea>
+        </div>
+        <div id="flow-error" class="error-msg" hidden></div>
+        <div class="form-row">
+          <button class="btn-primary" onclick="createFlow()">Save Flow</button>
+          <button class="btn-ghost" onclick="cancelCreateFlow()">Cancel</button>
+        </div>
+      </div>
+
+      <div id="flows-list" class="card-list">
+        <div class="empty-state"><div class="empty-icon">🔀</div><p>No flows yet</p></div>
+      </div>
+    </div>
+
+    <!-- ── Providers ── -->
+    <div id="tab-providers" class="tab-pane">
+      <div class="pane-header">
+        <div>
+          <h1 class="pane-title">Provider Keys</h1>
+          <p class="pane-desc">Set your own API keys. Leave blank to use Prepatu's shared keys (charged at standard rate).</p>
+        </div>
+        <button class="btn-primary" onclick="saveProviders()">Save Changes</button>
+      </div>
+      <div id="providers-save-msg" class="error-msg" style="background:color-mix(in srgb, var(--green) 10%, transparent);border-color:color-mix(in srgb, var(--green) 30%, transparent);color:var(--green);" hidden>Changes saved.</div>
+
+      <div class="card">
+        <div class="provider-group">
+          <div class="provider-title">Speech-to-Text</div>
+          <div class="field">
+            <label>Provider</label>
+            <select id="stt-provider" class="input">
+              <option value="deepgram">Deepgram</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>API Key</label>
+            <input id="stt-key" type="password" class="input" placeholder="Leave blank to use Prepatu shared key" autocomplete="new-password">
+          </div>
+        </div>
+        <hr class="divider">
+        <div class="provider-group">
+          <div class="provider-title">Language Model</div>
+          <div class="field">
+            <label>Provider</label>
+            <select id="llm-provider" class="input">
+              <option value="openrouter">OpenRouter</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>API Key</label>
+            <input id="llm-key" type="password" class="input" placeholder="Leave blank to use Prepatu shared key" autocomplete="new-password">
+          </div>
+        </div>
+        <hr class="divider">
+        <div class="provider-group">
+          <div class="provider-title">Text-to-Speech</div>
+          <div class="field">
+            <label>Provider</label>
+            <select id="tts-provider" class="input">
+              <option value="cartesia">Cartesia</option>
+              <option value="deepgram">Deepgram</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>API Key</label>
+            <input id="tts-key" type="password" class="input" placeholder="Leave blank to use Prepatu shared key" autocomplete="new-password">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Credits ── -->
+    <div id="tab-credits" class="tab-pane">
+      <div class="pane-header">
+        <div>
+          <h1 class="pane-title">Credits &amp; Usage</h1>
+          <p class="pane-desc">Sessions are billed per minute of conversation at the displayed rate.</p>
+        </div>
+      </div>
+
+      <div class="credits-grid">
+        <div class="stat-card">
+          <div class="stat-label">Balance</div>
+          <div id="balance-value" class="stat-value">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Rate (per minute)</div>
+          <div id="rate-value" class="stat-value">—</div>
+        </div>
+      </div>
+
+      <h2 style="font-size:15px;font-weight:600;margin-bottom:12px;color:var(--text-muted)">Recent Sessions</h2>
+      <div id="sessions-list" class="card-list">
+        <div class="empty-state"><div class="empty-icon">📊</div><p>No sessions yet</p></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  'use strict';
+
+  // ── State ────────────────────────────────────────────────────────────────────
+
+  let jwt = localStorage.getItem('prepatu_jwt');
+  let currentTab = 'apikeys';
+
+  // ── API ──────────────────────────────────────────────────────────────────────
+
+  async function api(method, path, body) {
+    const headers = { 'Content-Type': 'application/json' };
+    if (jwt) headers['Authorization'] = `Bearer ${jwt}`;
+    const resp = await fetch(path, {
+      method,
+      headers,
+      body: body != null ? JSON.stringify(body) : undefined,
+    });
+    if (resp.status === 204) return null;
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) {
+      const msg = data?.detail || `HTTP ${resp.status}`;
+      throw new Error(Array.isArray(msg) ? msg.map(e => e.msg).join(', ') : msg);
+    }
+    return data;
+  }
+
+  // ── Auth ─────────────────────────────────────────────────────────────────────
+
+  function showAuthTab(tab) {
+    document.querySelectorAll('.auth-tab').forEach((t, i) =>
+      t.classList.toggle('active', (i === 0) === (tab === 'login'))
+    );
+    document.getElementById('login-form').hidden = tab !== 'login';
+    document.getElementById('signup-form').hidden = tab !== 'signup';
+    document.getElementById('login-error').hidden = true;
+    document.getElementById('signup-error').hidden = true;
+  }
+
+  async function doLogin(e) {
+    e.preventDefault();
+    const errEl = document.getElementById('login-error');
+    errEl.hidden = true;
+    const btn = e.target.querySelector('button[type=submit]');
+    btn.disabled = true;
+    try {
+      const { access_token } = await api('POST', '/auth/login', {
+        email: document.getElementById('login-email').value,
+        password: document.getElementById('login-password').value,
+      });
+      jwt = access_token;
+      localStorage.setItem('prepatu_jwt', jwt);
+      showApp();
+    } catch (err) {
+      errEl.textContent = err.message;
+      errEl.hidden = false;
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  async function doSignup(e) {
+    e.preventDefault();
+    const errEl = document.getElementById('signup-error');
+    errEl.hidden = true;
+    const btn = e.target.querySelector('button[type=submit]');
+    btn.disabled = true;
+    try {
+      const { access_token } = await api('POST', '/auth/signup', {
+        email: document.getElementById('signup-email').value,
+        password: document.getElementById('signup-password').value,
+      });
+      jwt = access_token;
+      localStorage.setItem('prepatu_jwt', jwt);
+      showApp();
+    } catch (err) {
+      errEl.textContent = err.message;
+      errEl.hidden = false;
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function doLogout() {
+    jwt = null;
+    localStorage.removeItem('prepatu_jwt');
+    document.getElementById('app-screen').hidden = true;
+    document.getElementById('auth-screen').hidden = false;
+  }
+
+  // ── App ──────────────────────────────────────────────────────────────────────
+
+  function showApp() {
+    document.getElementById('auth-screen').hidden = true;
+    document.getElementById('app-screen').hidden = false;
+    switchTab(currentTab);
+  }
+
+  function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.getElementById(`tab-${tab}`).classList.add('active');
+    document.querySelectorAll('.nav-tab').forEach(t =>
+      t.classList.toggle('active', t.dataset.tab === tab)
+    );
+    if (tab === 'apikeys') loadKeys();
+    if (tab === 'flows')   loadFlows();
+    if (tab === 'providers') loadProviders();
+    if (tab === 'credits') loadCredits();
+  }
+
+  // ── API Keys ─────────────────────────────────────────────────────────────────
+
+  async function loadKeys() {
+    const listEl = document.getElementById('keys-list');
+    try {
+      const keys = await api('GET', '/auth/api-keys');
+      if (!keys.length) {
+        listEl.innerHTML = '<div class="empty-state"><div class="empty-icon">🔑</div><p>No API keys yet. Create one to use the SDK.</p></div>';
+        return;
+      }
+      listEl.innerHTML = keys.map(k => `
+        <div class="list-item ${k.revoked ? 'revoked' : ''}" data-key-id="${escHtml(k.key_id)}">
+          <div class="item-main">
+            <div class="item-title">${escHtml(k.label || 'Unnamed')}</div>
+            <div class="item-sub"><code style="font-family:monospace">${escHtml(k.key_prefix)}</code> · Created ${fmtDate(k.created_at)}</div>
+          </div>
+          ${k.revoked
+            ? '<span class="badge badge-muted">Revoked</span>'
+            : `<span class="badge badge-green">Active</span>
+               <button class="btn-danger" onclick="revokeKey('${escHtml(k.key_id)}')">Revoke</button>`
+          }
+        </div>
+      `).join('');
+    } catch (err) {
+      listEl.innerHTML = `<div class="error-msg">${escHtml(err.message)}</div>`;
+    }
+  }
+
+  function openCreateKey() {
+    document.getElementById('create-key-form').hidden = false;
+    document.getElementById('key-label').focus();
+  }
+
+  function cancelCreateKey() {
+    document.getElementById('create-key-form').hidden = true;
+    document.getElementById('key-label').value = '';
+  }
+
+  async function createApiKey() {
+    const label = document.getElementById('key-label').value.trim() || 'default';
+    try {
+      const { key } = await api('POST', `/auth/api-keys?label=${encodeURIComponent(label)}`);
+      document.getElementById('new-key-value').textContent = key;
+      document.getElementById('new-key-banner').hidden = false;
+      cancelCreateKey();
+      loadKeys();
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  function copyNewKey() {
+    const key = document.getElementById('new-key-value').textContent;
+    navigator.clipboard.writeText(key).then(() => {
+      const btn = document.querySelector('.copy-btn');
+      btn.textContent = 'Copied!';
+      setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+    });
+  }
+
+  async function revokeKey(keyId) {
+    if (!confirm('Revoke this API key? Any SDK using it will stop working immediately.')) return;
+    try {
+      await api('DELETE', `/auth/api-keys/${encodeURIComponent(keyId)}`);
+      loadKeys();
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  // ── Flows ────────────────────────────────────────────────────────────────────
+
+  async function loadFlows() {
+    const listEl = document.getElementById('flows-list');
+    try {
+      const flows = await api('GET', '/v1/flows');
+      if (!flows.length) {
+        listEl.innerHTML = '<div class="empty-state"><div class="empty-icon">🔀</div><p>No flows yet. Upload a VFDL YAML flow to get started.</p></div>';
+        return;
+      }
+      listEl.innerHTML = flows.map(f => `
+        <div class="list-item">
+          <div class="item-main">
+            <div class="item-title">${escHtml(f.name)}</div>
+            <div class="item-sub">ID: <code style="font-size:11px;font-family:monospace">${escHtml(f.id)}</code> · ${fmtDate(f.created_at)}</div>
+          </div>
+          <button class="btn-icon" title="Copy ID" onclick="navigator.clipboard.writeText('${escHtml(f.id)}')">⧉</button>
+          <button class="btn-icon" title="Edit Flow" onclick="viewFlow('${escHtml(f.id)}')">✏️</button>
+          <button class="btn-danger" onclick="deleteFlow('${escHtml(f.id)}')">Delete</button>
+        </div>
+      `).join('');
+    } catch (err) {
+      listEl.innerHTML = `<div class="error-msg">${escHtml(err.message)}</div>`;
+    }
+  }
+
+  function openCreateFlow() {
+    document.getElementById('create-flow-form').hidden = false;
+    document.getElementById('flow-name').focus();
+  }
+
+  function cancelCreateFlow() {
+    document.getElementById('create-flow-form').hidden = true;
+    document.getElementById('flow-name').value = '';
+    document.getElementById('flow-yaml').value = '';
+    document.getElementById('flow-error').hidden = true;
+  }
+
+  async function createFlow() {
+    const name = document.getElementById('flow-name').value.trim();
+    const yaml_content = document.getElementById('flow-yaml').value.trim();
+    const errEl = document.getElementById('flow-error');
+    errEl.hidden = true;
+    if (!name) { errEl.textContent = 'Flow name is required.'; errEl.hidden = false; return; }
+    if (!yaml_content) { errEl.textContent = 'YAML content is required.'; errEl.hidden = false; return; }
+    try {
+      await api('POST', '/v1/flows', { name, yaml_content });
+      cancelCreateFlow();
+      loadFlows();
+    } catch (err) {
+      errEl.textContent = err.message;
+      errEl.hidden = false;
+    }
+  }
+
+  function viewFlow(id) {
+    window.open(`/ui/flow_editor.html?id=${encodeURIComponent(id)}`, '_blank');
+  }
+
+  async function deleteFlow(id) {
+    if (!confirm('Delete this flow? Sessions already running are not affected.')) return;
+    try {
+      await api('DELETE', `/v1/flows/${id}`);
+      loadFlows();
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  // ── Providers ────────────────────────────────────────────────────────────────
+
+  async function loadProviders() {
+    try {
+      const p = await api('GET', '/v1/providers');
+      document.getElementById('stt-provider').value = p.stt_provider || 'deepgram';
+      document.getElementById('llm-provider').value = p.llm_provider || 'openrouter';
+      document.getElementById('tts-provider').value = p.tts_provider || 'cartesia';
+      // Don't pre-fill password fields — only show placeholder
+    } catch (err) {
+      console.warn('Could not load providers:', err.message);
+    }
+  }
+
+  async function saveProviders() {
+    const body = {
+      stt_provider: document.getElementById('stt-provider').value,
+      llm_provider: document.getElementById('llm-provider').value,
+      tts_provider: document.getElementById('tts-provider').value,
+    };
+    const sttKey = document.getElementById('stt-key').value.trim();
+    const llmKey = document.getElementById('llm-key').value.trim();
+    const ttsKey = document.getElementById('tts-key').value.trim();
+    if (sttKey) body.stt_api_key = sttKey;
+    if (llmKey) body.llm_api_key = llmKey;
+    if (ttsKey) body.tts_api_key = ttsKey;
+    const msgEl = document.getElementById('providers-save-msg');
+    msgEl.hidden = true;
+    try {
+      await api('PATCH', '/v1/providers', body);
+      // Clear key inputs after saving
+      document.getElementById('stt-key').value = '';
+      document.getElementById('llm-key').value = '';
+      document.getElementById('tts-key').value = '';
+      msgEl.hidden = false;
+      setTimeout(() => { msgEl.hidden = true; }, 3000);
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  // ── Credits ──────────────────────────────────────────────────────────────────
+
+  async function loadCredits() {
+    try {
+      const { balance_usd_cents, rate_per_minute_usd_cents } = await api('GET', '/v1/credits/balance');
+      const dollars = (balance_usd_cents / 100).toFixed(2);
+      const rate    = (rate_per_minute_usd_cents / 100).toFixed(3);
+      const balEl   = document.getElementById('balance-value');
+      balEl.textContent  = `$${dollars}`;
+      balEl.className    = `stat-value ${balance_usd_cents < 50 ? 'amber' : 'green'}`;
+      document.getElementById('rate-value').textContent = `$${rate}`;
+    } catch (err) {
+      document.getElementById('balance-value').textContent = '—';
+    }
+
+    try {
+      const sessions = await api('GET', '/v1/sessions');
+      const listEl   = document.getElementById('sessions-list');
+      if (!sessions.length) {
+        listEl.innerHTML = '<div class="empty-state"><div class="empty-icon">📊</div><p>No sessions yet.</p></div>';
+        return;
+      }
+      listEl.innerHTML = sessions.map(s => {
+        const dur = s.duration_secs != null ? `${s.duration_secs}s` : 'In progress';
+        const badge = s.ended_at
+          ? `<span class="badge badge-muted">Ended</span>`
+          : `<span class="badge badge-green">Active</span>`;
+        return `
+          <div class="list-item">
+            <div class="item-main">
+              <div class="item-title">${s.flow_id ? escHtml(s.flow_id) : 'Default flow'}</div>
+              <div class="item-sub">${fmtDate(s.started_at)} · Duration: ${dur}</div>
+            </div>
+            ${badge}
+          </div>`;
+      }).join('');
+    } catch (err) {
+      document.getElementById('sessions-list').innerHTML = `<div class="error-msg">${escHtml(err.message)}</div>`;
+    }
+  }
+
+  // ── Utils ────────────────────────────────────────────────────────────────────
+
+  function escHtml(str) {
+    return String(str ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function fmtDate(ts) {
+    if (!ts) return '—';
+    return new Date(ts * 1000).toLocaleDateString(undefined, {
+      year: 'numeric', month: 'short', day: 'numeric',
+    });
+  }
+
+  // ── Init ─────────────────────────────────────────────────────────────────────
+
+  if (jwt) {
+    showApp();
+  }
+</script>
+</body>
+</html>

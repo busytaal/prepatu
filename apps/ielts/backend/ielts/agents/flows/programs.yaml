@@ -1,0 +1,59 @@
+##
+## programs.yaml — server-driven practice program catalog.
+##
+## The mobile app fetches GET /programs and renders this list dynamically.
+## Adding a new program here is all that's needed to surface it in the UI.
+##
+## Fields per program:
+##   id           unique key used as program_id in API calls
+##   name         display name
+##   subtitle     short tagline shown under the name
+##   language     human-readable language name
+##   language_code  BCP-47 code (en, fr, de …)
+##   accent       hex colour for UI accent
+##   flow         filename stem of the YAML flow to run (no .yaml suffix)
+##   scoring      scoring rubric id ("ielts" | null)
+##   description  longer description for profile / onboarding (optional)
+##
+
+version: "1.0"
+
+programs:
+  - id: free_talk
+    name: Free Talk
+    subtitle: Speak freely, no pressure
+    language: English
+    language_code: en
+    accent: "#4A90E2"
+    flow: free_conversation
+    scoring: null
+    description: >
+      Unstructured conversation with a knowledgeable AI partner.
+      Talk about anything — travel, technology, culture, current events.
+      The AI keeps the conversation natural and flowing.
+
+  - id: ielts_practice
+    name: IELTS Practice
+    subtitle: AI coach with tips & feedback
+    language: English
+    language_code: en
+    accent: "#3ECF6A"
+    flow: ielts_practice
+    scoring: ielts
+    description: >
+      Practise all three parts of the IELTS Speaking test with a supportive
+      AI coach. Get vocabulary suggestions, grammar tips, and band score
+      estimates after each session.
+
+  - id: ielts_exam
+    name: IELTS Exam
+    subtitle: Full format · strict · timed
+    language: English
+    language_code: en
+    accent: "#E8A020"
+    flow: ielts_exam
+    scoring: ielts
+    description: >
+      Simulate a real IELTS Speaking exam. No hints, no corrections during
+      the test. All four parts in sequence, scored after completion on the
+      official IELTS band criteria.

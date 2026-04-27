@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>10 Questions — Prepatu Voice Demo</title>
+  </head>
+  <body>
+
+    <!-- ── Setup ──────────────────────────────────────────────────────── -->
+    <div id="setup-screen">
+      <div class="setup-card">
+        <div class="logo">
+          <span class="logo-mark">🎯</span>
+          <span class="logo-name">10 Questions</span>
+          <span class="logo-tag">Voice Game powered by Prepatu</span>
+        </div>
+
+        <div class="setup-steps">
+          <strong>How to play:</strong>
+          <ol>
+            <li>The AI secretly picks something</li>
+            <li>Ask up to 10 yes/no questions to figure out what it is</li>
+            <li>Guess at any time — get it right to win!</li>
+          </ol>
+        </div>
+
+        <div id="setup-error" class="error-msg" hidden></div>
+
+        <div class="field">
+          <label>Cloud URL</label>
+          <input id="cloud-url" type="url" value="http://localhost:4000">
+        </div>
+        <div class="field">
+          <label>API Key</label>
+          <input id="api-key" type="password" class="mono" placeholder="pk_live_..." autocomplete="off">
+        </div>
+        <div class="field">
+          <label>Flow ID</label>
+          <input id="flow-id" type="text" class="mono" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off">
+        </div>
+
+        <button class="btn-connect" id="connect-btn">Start Game →</button>
+      </div>
+    </div>
+
+    <!-- ── Game screen ────────────────────────────────────────────────── -->
+    <div id="game-screen" hidden>
+
+      <div class="game-layout">
+
+        <!-- Left: score + card -->
+        <div class="game-main">
+
+          <!-- Score bar -->
+          <div class="score-bar">
+            <div class="score-label">Questions</div>
+            <div class="question-pips" id="question-pips">
+              <!-- 10 pips rendered by JS -->
+            </div>
+            <div class="score-count" id="score-count">0 / 10</div>
+          </div>
+
+          <!-- Game card -->
+          <div class="game-card" id="game-card">
+            <div class="loading-state">
+              <div class="spinner"></div>
+              Connecting…
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right: voice + transcript -->
+        <div class="voice-panel">
+
+          <div class="orb-section">
+            <div class="orb-wrap">
+              <div class="orb-ring idle" id="orb-ring"></div>
+              <div class="orb-core idle" id="orb-core">🎯</div>
+            </div>
+            <div class="orb-status idle" id="orb-status">Connecting…</div>
+            <button class="btn-disconnect" id="btn-disconnect">Quit Game</button>
+          </div>
+
+          <div class="transcript-section">
+            <div class="transcript-header">Conversation</div>
+            <div class="transcript-feed" id="transcript-feed">
+              <div class="transcript-placeholder">Conversation will appear here…</div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Debug panel -->
+      <div id="debug-panel">
+        <div class="debug-header">
+          <span>WS Frames</span>
+          <button id="debug-clear">clear</button>
+        </div>
+        <div class="debug-feed" id="debug-feed"></div>
+      </div>
+
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

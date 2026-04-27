@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prepatu — Admin Config</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0f1117;
+      --surface:  #1a1d27;
+      --border:   #2a2d3e;
+      --accent:   #4f8ef7;
+      --accent-h: #3a78e0;
+      --danger:   #e05c5c;
+      --success:  #4caf7d;
+      --text:     #e4e6f0;
+      --muted:    #7a7f9a;
+      --radius:   10px;
+      --font:     system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    header {
+      max-width: 780px;
+      margin: 0 auto 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    header h1 { font-size: 1.25rem; font-weight: 600; }
+    header .badge {
+      font-size: .7rem;
+      background: var(--accent);
+      color: #fff;
+      padding: .2rem .55rem;
+      border-radius: 99px;
+      letter-spacing: .04em;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      padding: .75rem 1.25rem;
+      border-radius: var(--radius);
+      font-size: .875rem;
+      font-weight: 500;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity .25s, transform .25s;
+      pointer-events: none;
+      z-index: 999;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.ok   { background: var(--success); color: #fff; }
+    .toast.err  { background: var(--danger);  color: #fff; }
+
+    main { max-width: 780px; margin: 0 auto; display: grid; gap: 1.25rem; }
+
+    section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    section header {
+      padding: .9rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      margin: 0;
+      display: block;
+    }
+    section header h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+
+    .fields { padding: .5rem 1.25rem 1.25rem; display: grid; gap: .75rem; }
+
+    .field {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: .75rem;
+      padding: .6rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .field:last-child { border-bottom: none; }
+    .field-info label { display: block; font-size: .875rem; font-weight: 500; }
+    .field-info small  { display: block; font-size: .75rem; color: var(--muted); margin-top: .15rem; }
+
+    /* Toggle */
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .track {
+      position: absolute; inset: 0;
+      background: var(--border);
+      border-radius: 99px;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .track::after {
+      content: '';
+      position: absolute;
+      top: 3px; left: 3px;
+      width: 18px; height: 18px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform .2s;
+    }
+    .toggle input:checked + .track { background: var(--accent); }
+    .toggle input:checked + .track::after { transform: translateX(18px); }
+
+    /* Select */
+    select, input[type="text"], input[type="number"] {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: .875rem;
+      border-radius: 6px;
+      padding: .4rem .7rem;
+      outline: none;
+      min-width: 160px;
+    }
+    select:focus, input:focus { border-color: var(--accent); }
+
+    input[type="number"] { min-width: 90px; }
+
+    /* Textarea for maintenance message */
+    textarea {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: .875rem;
+      border-radius: 6px;
+      padding: .4rem .7rem;
+      outline: none;
+      resize: vertical;
+      min-height: 60px;
+      width: 100%;
+      grid-column: 1 / -1;
+    }
+    textarea:focus { border-color: var(--accent); }
+
+    .field.tall { grid-template-columns: 1fr; }
+
+    /* Save button */
+    .actions { padding: 0 1.25rem 1.25rem; display: flex; justify-content: flex-end; gap: .75rem; }
+    button {
+      font-size: .875rem;
+      font-weight: 600;
+      padding: .55rem 1.25rem;
+      border-radius: 7px;
+      border: none;
+      cursor: pointer;
+      transition: opacity .15s, transform .1s;
+    }
+    button:active { transform: scale(.97); }
+    .btn-save    { background: var(--accent);  color: #fff; }
+    .btn-save:hover { background: var(--accent-h); }
+    .btn-reload  { background: var(--border);  color: var(--text); }
+
+    /* Maintenance banner preview */
+    .maint-preview {
+      margin: 0 1.25rem 1rem;
+      background: rgba(224,92,92,.15);
+      border: 1px solid var(--danger);
+      border-radius: 7px;
+      padding: .6rem 1rem;
+      font-size: .8rem;
+      color: var(--danger);
+      display: none;
+    }
+    .maint-preview.show { display: block; }
+
+    /* Raw JSON viewer */
+    details { border-top: 1px solid var(--border); }
+    summary {
+      padding: .75rem 1.25rem;
+      cursor: pointer;
+      font-size: .8rem;
+      color: var(--muted);
+      list-style: none;
+      user-select: none;
+    }
+    summary::-webkit-details-marker { display: none; }
+    pre {
+      padding: 1rem 1.25rem;
+      font-size: .75rem;
+      color: var(--muted);
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Prepatu Admin</h1>
+  <span class="badge">Remote Config</span>
+</header>
+
+<main>
+
+  <!-- Transport -->
+  <section>
+    <header><h2>Transport</h2></header>
+    <div class="fields">
+
+      <div class="field">
+        <div class="field-info">
+          <label>Client transport</label>
+          <small>Which protocol the SDK uses to stream audio.</small>
+        </div>
+        <select id="transport">
+          <option value="websocket">WebSocket</option>
+          <option value="webrtc">WebRTC</option>
+          <option value="auto">Auto (WebRTC → WS fallback)</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <div class="field-info">
+          <label>Allow mid-session upgrade</label>
+          <small>SDK may promote WS → WebRTC after connecting.</small>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="allow_upgrade" />
+          <span class="track"></span>
+        </label>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Pipeline -->
+  <section>
+    <header><h2>Pipeline</h2></header>
+    <div class="fields">
+
+      <div class="field">
+        <div class="field-info">
+          <label>Pipeline mode</label>
+          <small>Switch between Pipecat STT→LLM→TTS and a native audio LLM.</small>
+        </div>
+        <select id="pipeline_mode">
+          <option value="stt_llm_tts">STT → LLM → TTS (Pipecat)</option>
+          <option value="native_audio">Native audio LLM (e.g. GPT-4o Realtime)</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <div class="field-info">
+          <label>STT provider override</label>
+          <small>Leave blank to use the server environment variable.</small>
+        </div>
+        <input type="text" id="stt_provider" placeholder="e.g. deepgram" />
+      </div>
+
+      <div class="field">
+        <div class="field-info">
+          <label>TTS provider override</label>
+          <small>Leave blank to use the server environment variable.</small>
+        </div>
+        <input type="text" id="tts_provider" placeholder="e.g. cartesia" />
+      </div>
+
+      <div class="field">
+        <div class="field-info">
+          <label>LLM provider override</label>
+          <small>Leave blank to use the server environment variable.</small>
+        </div>
+        <input type="text" id="llm_provider" placeholder="e.g. openrouter" />
+      </div>
+
+      <div class="field">
+        <div class="field-info">
+          <label>LLM model override</label>
+          <small>e.g. openai/gpt-4o — leave blank for env default.</small>
+        </div>
+        <input type="text" id="llm_model" placeholder="" />
+      </div>
+
+    </div>
+  </section>
+
+  <!-- VAD & Audio -->
+  <section>
+    <header><h2>VAD &amp; Audio</h2></header>
+    <div class="fields">
+
+      <div class="field">
+        <div class="field-info">
+          <label>VAD stop timeout (seconds)</label>
+          <small>Silence duration before end-of-utterance is declared.</small>
+        </div>
+        <input type="number" id="vad_stop_secs" min="0.1" max="5" step="0.1" />
+      </div>
+
+      <div class="field">
+        <div class="field-info">
+          <label>Client VAD indicator</label>
+          <small>Show a speaking/listening badge in the mobile and web UI.</small>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="client_vad_ui" />
+          <span class="track"></span>
+        </label>
+      </div>
+
+      <div class="field">
+        <div class="field-info">
+          <label>Audio sample rate (Hz)</label>
+          <small>Sent in the config message to the SDK on connect.</small>
+        </div>
+        <select id="audio_sample_rate">
+          <option value="16000">16 000</option>
+          <option value="24000">24 000</option>
+          <option value="48000">48 000</option>
+        </select>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Session -->
+  <section>
+    <header><h2>Session</h2></header>
+    <div class="fields">
+
+      <div class="field">
+        <div class="field-info">
+          <label>Max session duration (seconds)</label>
+          <small>0 = unlimited.</small>
+        </div>
+        <input type="number" id="max_session_secs" min="0" step="30" />
+      </div>
+
+      <div class="field">
+        <div class="field-info">
+          <label>Default interview type</label>
+          <small>Used when the client does not specify one.</small>
+        </div>
+        <select id="default_interview">
+          <option value="idle">Idle</option>
+          <option value="part1">Part 1 — Introduction</option>
+          <option value="part2">Part 2 — Long Turn</option>
+          <option value="part3">Part 3 — Discussion</option>
+          <option value="full">Full Mock Test</option>
+        </select>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- UI flags -->
+  <section>
+    <header><h2>Client UI Flags</h2></header>
+    <div class="fields">
+
+      <div class="field">
+        <div class="field-info">
+          <label>QoS debug panel</label>
+          <small>Show latency / jitter sparklines in the web SDK.</small>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="qos_panel" />
+          <span class="track"></span>
+        </label>
+      </div>
+
+      <div class="field">
+        <div class="field-info">
+          <label>Show transcript</label>
+          <small>Display live transcript in the mobile app.</small>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="show_transcript" />
+          <span class="track"></span>
+        </label>
+      </div>
+
+      <div class="field">
+        <div class="field-info">
+          <label>Force onboarding</label>
+          <small>Show onboarding on startup even if this device already completed it.</small>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="force_onboarding" />
+          <span class="track"></span>
+        </label>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Maintenance -->
+  <section>
+    <header><h2>Maintenance</h2></header>
+    <div class="maint-preview" id="maint_preview">
+      ⚠ Maintenance mode is active — clients cannot start a session.
+    </div>
+    <div class="fields">
+
+      <div class="field">
+        <div class="field-info">
+          <label>Maintenance mode</label>
+          <small>Clients see a banner and cannot start a new session.</small>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="maintenance" />
+          <span class="track"></span>
+        </label>
+      </div>
+
+      <div class="field tall">
+        <div class="field-info">
+          <label>Maintenance message</label>
+          <small>Shown to the user in the app banner.</small>
+        </div>
+        <textarea id="maintenance_msg" rows="2"></textarea>
+      </div>
+
+    </div>
+    <div class="actions">
+      <button class="btn-reload" onclick="loadConfig()">↺ Reload</button>
+      <button class="btn-save"   onclick="saveConfig()">Save changes</button>
+    </div>
+    <details>
+      <summary>Raw JSON</summary>
+      <pre id="raw_json"></pre>
+    </details>
+  </section>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const ADMIN_URL = '/admin/config';
+
+  // ── field helpers ──────────────────────────────────────────────────────────
+
+  function getEl(id) { return document.getElementById(id); }
+
+  function setField(id, value) {
+    const el = getEl(id);
+    if (!el) return;
+    if (el.type === 'checkbox') el.checked = !!value;
+    else el.value = String(value ?? '');
+  }
+
+  function collectFields() {
+    const boolIds = ['allow_upgrade','client_vad_ui','qos_panel','show_transcript','force_onboarding','maintenance'];
+    const numIds  = ['vad_stop_secs','max_session_secs','audio_sample_rate'];
+    const strIds  = ['transport','pipeline_mode','stt_provider','tts_provider',
+                     'llm_provider','llm_model','default_interview','maintenance_msg'];
+    const out = {};
+    boolIds.forEach(id => { out[id] = getEl(id)?.checked ?? false; });
+    numIds.forEach(id  => { out[id] = parseFloat(getEl(id)?.value ?? '0') || 0; });
+    strIds.forEach(id  => { out[id] = getEl(id)?.value ?? ''; });
+    return out;
+  }
+
+  // ── maintenance preview ────────────────────────────────────────────────────
+
+  getEl('maintenance').addEventListener('change', function () {
+    getEl('maint_preview').classList.toggle('show', this.checked);
+  });
+
+  // ── load ───────────────────────────────────────────────────────────────────
+
+  async function loadConfig() {
+    try {
+      const res  = await fetch(ADMIN_URL);
+      if (!res.ok) throw new Error(`${res.status}`);
+      const data = await res.json();
+
+      Object.keys(data).forEach(k => setField(k, data[k]));
+      getEl('maint_preview').classList.toggle('show', !!data.maintenance);
+      getEl('raw_json').textContent = JSON.stringify(data, null, 2);
+    } catch (err) {
+      showToast('Failed to load config: ' + err.message, 'err');
+    }
+  }
+
+  // ── save ───────────────────────────────────────────────────────────────────
+
+  async function saveConfig() {
+    const patch = collectFields();
+    try {
+      const res = await fetch(ADMIN_URL, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(patch),
+      });
+      if (!res.ok) throw new Error(`${res.status}`);
+      const data = await res.json();
+      getEl('raw_json').textContent = JSON.stringify(data, null, 2);
+      showToast('Config saved ✓', 'ok');
+    } catch (err) {
+      showToast('Save failed: ' + err.message, 'err');
+    }
+  }
+
+  // ── toast ──────────────────────────────────────────────────────────────────
+
+  function showToast(msg, type) {
+    const el = getEl('toast');
+    el.textContent = msg;
+    el.className = `toast ${type} show`;
+    clearTimeout(el._t);
+    el._t = setTimeout(() => { el.classList.remove('show'); }, 2800);
+  }
+
+  // ── init ───────────────────────────────────────────────────────────────────
+
+  loadConfig();
+</script>
+</body>
+</html>

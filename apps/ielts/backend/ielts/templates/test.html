@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Prepatu WebRTC Diagnostics</title>
+<style>
+  :root {
+    --bg: #0b1016;
+    --panel: #121a24;
+    --panel-2: #101721;
+    --text: #d8e2f2;
+    --muted: #8fa0b8;
+    --good: #48d597;
+    --warn: #f2c14e;
+    --bad: #ef5b5b;
+    --line: #2a3a52;
+    --accent: #59a5ff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(circle at 80% -20%, #1a2940 0%, transparent 45%),
+      radial-gradient(circle at 0% 120%, #16253a 0%, transparent 40%),
+      var(--bg);
+    color: var(--text);
+    font-family: "Consolas", "Courier New", monospace;
+    min-height: 100vh;
+  }
+  .wrap {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 18px;
+  }
+  h1 {
+    margin: 0 0 8px;
+    font-size: 24px;
+    letter-spacing: 0.3px;
+  }
+  .sub {
+    color: var(--muted);
+    margin-bottom: 12px;
+    font-size: 12px;
+  }
+  .status-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+  .chip {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: 1.35fr 1fr;
+    gap: 14px;
+  }
+  @media (max-width: 980px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px;
+  }
+  .panel h2 {
+    font-size: 13px;
+    margin: 0 0 10px;
+    color: #b9c8dc;
+    letter-spacing: 0.4px;
+  }
+  .controls {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  @media (max-width: 640px) {
+    .controls { grid-template-columns: 1fr; }
+  }
+  button {
+    border: 1px solid var(--line);
+    background: var(--panel-2);
+    color: #d8e2f2;
+    padding: 8px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    text-align: left;
+  }
+  button:hover { border-color: #3f5d87; }
+  button.active {
+    border-color: var(--accent);
+    box-shadow: inset 0 0 0 1px #2f4f78;
+  }
+  .actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  .actions button { text-align: center; }
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .kpi {
+    background: #0f1621;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 8px;
+  }
+  .kpi .name { color: var(--muted); font-size: 11px; }
+  .kpi .value { font-size: 16px; margin-top: 2px; }
+  .kpi.good .value { color: var(--good); }
+  .kpi.warn .value { color: var(--warn); }
+  .kpi.bad .value { color: var(--bad); }
+  .kpi .hint { color: var(--muted); font-size: 10px; margin-top: 2px; }
+  canvas {
+    width: 100%;
+    height: 150px;
+    background: #0d1420;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    display: block;
+  }
+  #log {
+    background: #0a111b;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px;
+    height: 270px;
+    overflow-y: auto;
+    font-size: 11px;
+    line-height: 16px;
+    color: #8df0bf;
+    white-space: pre-wrap;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Prepatu WebRTC Diagnostics</h1>
+  <div class="sub">Use presets, connect, and compare jitter/loss/RTT to find what causes choppy audio.</div>
+
+  <div id="turn-error-banner" style="display:none;background:#2a0d0d;border:1px solid #ef5b5b;border-radius:8px;padding:10px 14px;margin-bottom:12px;color:#ef5b5b;font-size:12px;line-height:1.6;"></div>
+
+  <div class="status-bar">
+    <div class="chip" id="conn-chip">state: idle</div>
+    <div class="chip" id="path-chip">path: -</div>
+    <div class="chip" id="turn-chip">turn: unknown</div>
+    <div class="chip" id="profile-chip">profile: default</div>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>Connection Profiles</h2>
+      <div class="controls" id="profile-buttons">
+        <button data-profile="default" class="active">Default Auto
+          <div class="hint">STUN/TURN auto, mic processing ON</div>
+        </button>
+        <button data-profile="relay">Force TURN Relay
+          <div class="hint">Tests coturn path quality</div>
+        </button>
+        <button data-profile="direct">Direct Preferred
+          <div class="hint">Remove TURN from ICE list</div>
+        </button>
+        <button data-profile="rawmic">Raw Mic
+          <div class="hint">Disable echo/noise/agc</div>
+        </button>
+        <button data-profile="processed">Processed Mic
+          <div class="hint">Enable echo/noise/agc</div>
+        </button>
+        <button data-profile="lowbitrate">Low Bitrate (24kbps)
+          <div class="hint">Checks network stability under constrained audio</div>
+        </button>
+      </div>
+
+      <div class="actions">
+        <button onclick="start()" style="border-color:#3d7f5b;">Start Interview</button>
+        <button onclick="stop()" style="border-color:#7f3d3d;">Stop</button>
+        <button onclick="startTurnEcho()" style="border-color:#3d5f7f;">Start TURN Echo</button>
+        <button onclick="stopTurnEcho()" style="border-color:#7f3d7f;">Stop TURN Echo</button>
+        <button onclick="clearLog()" style="border-color:#44566e;">Clear Log</button>
+      </div>
+
+      <h2 style="margin-top:14px;">Event Log</h2>
+      <div id="log">-- pick profile and click Start Interview --
+</div>
+    </div>
+
+    <div class="panel">
+      <h2>Live Quality Indicators</h2>
+      <div class="kpis">
+        <div class="kpi" id="kpi-jitter"><div class="name">Jitter</div><div class="value">-</div><div class="hint">Nominal: < 20ms</div></div>
+        <div class="kpi" id="kpi-loss"><div class="name">Packet Loss</div><div class="value">-</div><div class="hint">Nominal: < 1%</div></div>
+        <div class="kpi" id="kpi-rtt"><div class="name">RTT</div><div class="value">-</div><div class="hint">Nominal: < 80ms</div></div>
+        <div class="kpi" id="kpi-bw"><div class="name">Outgoing BW</div><div class="value">-</div><div class="hint">Nominal: > 40kbps</div></div>
+      </div>
+
+      <h2 style="margin-top:12px;">Jitter / Loss / RTT Trend</h2>
+      <canvas id="trend" width="560" height="210"></canvas>
+    </div>
+  </div>
+</div>
+
+<script>
+let pc = null;
+let localStream = null;
+let pcId = null;
+let statsInterval = null;
+let activeProfile = "default";
+let sawRelayCandidate = false;
+let sawSrflxCandidate = false;
+let turnUrls = [];
+let iceCandidates = [];
+let turnEchoPc1 = null;
+let turnEchoPc2 = null;
+let turnEchoStream = null;
+let turnEchoAudio = null;
+let turnEchoInterval = null;
+const HOST = location.origin;
+const samples = [];
+const MAX_SAMPLES = 60;
+
+function ts() { return new Date().toLocaleTimeString('en', { hour12: false }); }
+function log(m) {
+  const el = document.getElementById('log');
+  el.textContent += `[${ts()}] ${m}\n`;
+  el.scrollTop = el.scrollHeight;
+}
+function clearLog() { document.getElementById('log').textContent = ''; }
+
+function parseIceCandidate(candidateString) {
+  const parts = String(candidateString || '').split(' ');
+  const typeIndex = parts.indexOf('typ');
+  const candType = typeIndex >= 0 ? parts[typeIndex + 1] : 'unknown';
+  const proto = parts[2] || 'unknown';
+  const addr = parts[4] || 'unknown';
+  const port = parts[5] || 'unknown';
+  const relAddrIndex = parts.indexOf('raddr');
+  const relAddr = relAddrIndex >= 0 ? parts[relAddrIndex + 1] : null;
+  const relPortIndex = parts.indexOf('rport');
+  const relPort = relPortIndex >= 0 ? parts[relPortIndex + 1] : null;
+  return { candType, proto, addr, port, relAddr, relPort };
+}
+
+async function getTurnOnlyIceServers() {
+  const iceRes = await fetch(HOST + '/ice-servers');
+  const iceData = await iceRes.json();
+  const iceServers = iceData.iceServers || [];
+  const turnOnly = iceServers.filter(server => {
+    const urls = Array.isArray(server.urls) ? server.urls : [server.urls];
+    return urls.some(u => String(u).startsWith('turn:') || String(u).startsWith('turns:'));
+  });
+  if (!turnOnly.length) {
+    showTurnError('TURN echo test requires TURN entries in /ice-servers.');
+    throw new Error('No TURN entries available');
+  }
+  log(`[TURN ECHO] Using ${turnOnly.length} TURN server entry(ies)`);
+  return turnOnly;
+}
+
+function stopTurnEcho() {
+  if (turnEchoInterval) {
+    clearInterval(turnEchoInterval);
+    turnEchoInterval = null;
+  }
+  if (turnEchoPc1) {
+    turnEchoPc1.close();
+    turnEchoPc1 = null;
+  }
+  if (turnEchoPc2) {
+    turnEchoPc2.close();
+    turnEchoPc2 = null;
+  }
+  if (turnEchoStream) {
+    turnEchoStream.getTracks().forEach(track => track.stop());
+    turnEchoStream = null;
+  }
+  if (turnEchoAudio) {
+    turnEchoAudio.srcObject = null;
+    turnEchoAudio.remove();
+    turnEchoAudio = null;
+  }
+  log('[TURN ECHO] stopped');
+}
+
+async function startTurnEcho() {
+  if (turnEchoPc1 || turnEchoPc2) {
+    log('[TURN ECHO] already running');
+    return;
+  }
+  try {
+    clearTurnError();
+    log('[TURN ECHO] requesting microphone...');
+    turnEchoStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    log('[TURN ECHO] microphone granted');
+
+    const iceServers = await getTurnOnlyIceServers();
+    const config = { iceServers, iceTransportPolicy: 'relay' };
+
+    turnEchoPc1 = new RTCPeerConnection(config);
+    turnEchoPc2 = new RTCPeerConnection(config);
+
+    turnEchoPc1.onicecandidate = async event => {
+      if (event.candidate && turnEchoPc2) {
+        await turnEchoPc2.addIceCandidate(event.candidate).catch(err => log(`[TURN ECHO] pc2 addIceCandidate error: ${err.message}`));
+      }
+    };
+    turnEchoPc2.onicecandidate = async event => {
+      if (event.candidate && turnEchoPc1) {
+        await turnEchoPc1.addIceCandidate(event.candidate).catch(err => log(`[TURN ECHO] pc1 addIceCandidate error: ${err.message}`));
+      }
+    };
+
+    turnEchoPc1.onconnectionstatechange = () => log(`[TURN ECHO] pc1 connectionState=${turnEchoPc1.connectionState}`);
+    turnEchoPc2.onconnectionstatechange = () => log(`[TURN ECHO] pc2 connectionState=${turnEchoPc2.connectionState}`);
+
+    turnEchoPc2.ontrack = event => {
+      log('[TURN ECHO] received remote audio track');
+      if (turnEchoAudio) {
+        turnEchoAudio.srcObject = null;
+        turnEchoAudio.remove();
+      }
+      turnEchoAudio = new Audio();
+      turnEchoAudio.autoplay = true;
+      turnEchoAudio.srcObject = event.streams[0];
+      turnEchoAudio.muted = false;
+      document.body.appendChild(turnEchoAudio);
+      log('[TURN ECHO] playing echo audio');
+    };
+
+    turnEchoStream.getTracks().forEach(track => turnEchoPc1.addTrack(track, turnEchoStream));
+    log('[TURN ECHO] local audio track added to pc1');
+
+    const offer = await turnEchoPc1.createOffer();
+    await turnEchoPc1.setLocalDescription(offer);
+    log('[TURN ECHO] pc1 local description set');
+
+    await turnEchoPc2.setRemoteDescription(offer);
+    const answer = await turnEchoPc2.createAnswer();
+    await turnEchoPc2.setLocalDescription(answer);
+    log('[TURN ECHO] pc2 local description set');
+
+    await turnEchoPc1.setRemoteDescription(answer);
+    log('[TURN ECHO] pc1 remote description set');
+
+    turnEchoInterval = setInterval(async () => {
+      if (!turnEchoPc1) return;
+      try {
+        const stats = await turnEchoPc1.getStats();
+        stats.forEach(report => {
+          if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+            log(`[TURN ECHO] active pair: local=${report.localCandidateType} remote=${report.remoteCandidateType} rtt=${Math.round((report.currentRoundTripTime || 0) * 1000)}ms`);
+          }
+        });
+      } catch (err) {
+        log(`[TURN ECHO] stats error: ${err.message}`);
+      }
+    }, 3000);
+  } catch (err) {
+    log(`[TURN ECHO] ERROR: ${err.message}`);
+    stopTurnEcho();
+  }
+}
+
+function summarizeIceServers(iceServers) {
+  let stunCount = 0;
+  let turnCount = 0;
+  turnUrls = [];
+
+  iceServers.forEach(server => {
+    const urls = Array.isArray(server.urls) ? server.urls : [server.urls];
+    urls.forEach(url => {
+      const v = String(url || '');
+      if (v.startsWith('stun:')) stunCount += 1;
+      if (v.startsWith('turn:') || v.startsWith('turns:')) {
+        turnCount += 1;
+        turnUrls.push(v);
+      }
+    });
+  });
+
+  log(`[ICE CFG] STUN entries=${stunCount}, TURN entries=${turnCount}`);
+  if (turnCount > 0) {
+    const masked = turnUrls.map(u => u.replace(/:(\d+)(\?.*)?$/, ':$1')).join(', ');
+    log(`[ICE CFG] TURN URLs: ${masked}`);
+    if (activeProfile === 'relay') {
+      log('[TURN DEBUG] Relay profile active; TURN entry count must be >0.');
+    }
+  } else {
+    log('[ICE CFG] No TURN URLs provided by /ice-servers');
+    if (activeProfile === 'relay') {
+      showTurnError('Force TURN Relay is active but /ice-servers returned no TURN URLs. Set TURN_SERVER in .env.');
+      return false;
+    }
+  }
+  return true;
+}
+
+function showTurnError(msg) {
+  const banner = document.getElementById('turn-error-banner');
+  banner.style.display = 'block';
+  banner.textContent = `⚠ TURN FAILURE: ${msg}`;
+  log(`[TURN ERROR] ${msg}`);
+  setState('turn-failed', '#ef5b5b');
+  document.getElementById('turn-chip').textContent = 'turn: FAILED';
+  document.getElementById('turn-chip').style.color = '#ef5b5b';
+}
+
+function clearTurnError() {
+  const banner = document.getElementById('turn-error-banner');
+  banner.style.display = 'none';
+  banner.textContent = '';
+}
+
+function setState(state, color = '#8fa0b8') {
+  const chip = document.getElementById('conn-chip');
+  chip.textContent = `state: ${state}`;
+  chip.style.color = color;
+}
+
+function setProfileChip() {
+  document.getElementById('profile-chip').textContent = `profile: ${activeProfile}`;
+}
+
+function classify(metric, value) {
+  if (metric === 'jitter') {
+    if (value < 20) return 'good';
+    if (value < 50) return 'warn';
+    return 'bad';
+  }
+  if (metric === 'loss') {
+    if (value < 1) return 'good';
+    if (value < 3) return 'warn';
+    return 'bad';
+  }
+  if (metric === 'rtt') {
+    if (value < 80) return 'good';
+    if (value < 160) return 'warn';
+    return 'bad';
+  }
+  if (metric === 'bw') {
+    if (value > 40) return 'good';
+    if (value > 24) return 'warn';
+    return 'bad';
+  }
+  return 'warn';
+}
+
+function setKpi(id, valueText, cls) {
+  const card = document.getElementById(id);
+  card.classList.remove('good', 'warn', 'bad');
+  card.classList.add(cls);
+  card.querySelector('.value').textContent = valueText;
+}
+
+function drawTrend() {
+  const canvas = document.getElementById('trend');
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width;
+  const h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+
+  ctx.strokeStyle = '#24344b';
+  ctx.lineWidth = 1;
+  for (let i = 1; i <= 4; i++) {
+    const y = (h / 5) * i;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(w, y);
+    ctx.stroke();
+  }
+
+  if (samples.length < 2) return;
+
+  const jitterMax = 120;
+  const lossMax = 10;
+  const rttMax = 300;
+
+  function drawSeries(key, max, color) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    samples.forEach((s, i) => {
+      const x = (i / (MAX_SAMPLES - 1)) * w;
+      const y = h - Math.min((s[key] / max) * h, h);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  }
+
+  drawSeries('jitter', jitterMax, '#48d597');
+  drawSeries('loss', lossMax, '#f2c14e');
+  drawSeries('rtt', rttMax, '#ef5b5b');
+
+  ctx.fillStyle = '#8fa0b8';
+  ctx.font = '11px Consolas';
+  ctx.fillText('Green=jitter(ms), Yellow=loss(%), Red=RTT(ms)', 10, 16);
+}
+
+function addSample(s) {
+  samples.push(s);
+  if (samples.length > MAX_SAMPLES) samples.shift();
+  drawTrend();
+}
+
+function setupProfileButtons() {
+  const buttons = document.querySelectorAll('#profile-buttons button');
+  buttons.forEach(btn => {
+    btn.onclick = () => {
+      buttons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeProfile = btn.dataset.profile;
+      setProfileChip();
+      log(`profile selected: ${activeProfile}`);
+    };
+  });
+}
+
+function getMicConstraints(profile) {
+  const processed = {
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true,
+    sampleRate: 16000,
+    channelCount: 1
+  };
+  const raw = {
+    echoCancellation: false,
+    noiseSuppression: false,
+    autoGainControl: false,
+    sampleRate: 16000,
+    channelCount: 1
+  };
+
+  if (profile === 'rawmic') return raw;
+  return processed;
+}
+
+function configurePeerConnectionOptions(profile) {
+  if (profile === 'relay') {
+    return { iceTransportPolicy: 'relay' };
+  }
+  return {};
+}
+
+function applySenderTuning(profile) {
+  if (!pc) return;
+  if (profile !== 'lowbitrate') return;
+
+  pc.getSenders().forEach(sender => {
+    if (!sender.track || sender.track.kind !== 'audio') return;
+    const params = sender.getParameters();
+    if (!params.encodings || params.encodings.length === 0) {
+      params.encodings = [{}];
+    }
+    params.encodings[0].maxBitrate = 24000;
+    sender.setParameters(params).catch(err => log(`sender tuning error: ${err.message}`));
+  });
+  log('applied low bitrate profile: 24kbps');
+}
+
+async function logStats() {
+  if (!pc) return;
+  try {
+    const stats = await pc.getStats();
+    let audioStats = null;
+    let pair = null;
+
+    stats.forEach(report => {
+      if (report.type === 'inbound-rtp' && report.mediaType === 'audio') {
+        audioStats = report;
+      }
+      if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+        pair = report;
+      }
+    });
+
+    let jitter = 0;
+    let lossRate = 0;
+    let rtt = 0;
+    let bw = 0;
+
+    if (audioStats) {
+      jitter = (audioStats.jitter || 0) * 1000;
+      const packetsLost = audioStats.packetsLost || 0;
+      const packetsReceived = audioStats.packetsReceived || 0;
+      const total = packetsLost + packetsReceived;
+      lossRate = total > 0 ? (packetsLost / total) * 100 : 0;
+    }
+
+    if (pair) {
+      rtt = (pair.currentRoundTripTime || 0) * 1000;
+      bw = (pair.availableOutgoingBitrate || 0) / 1024;
+      const localCandidate = Array.from(stats.values()).find(r => r.id === pair.localCandidateId || r.id === pair.localCandidateId?.toString());
+      const remoteCandidate = Array.from(stats.values()).find(r => r.id === pair.remoteCandidateId || r.id === pair.remoteCandidateId?.toString());
+      const localType = localCandidate?.candidateType || localCandidate?.type || 'unknown';
+      const remoteType = remoteCandidate?.candidateType || remoteCandidate?.type || 'unknown';
+      sawRelayCandidate = sawRelayCandidate || localType === 'relay' || remoteType === 'relay';
+      sawSrflxCandidate = sawSrflxCandidate || localType === 'srflx' || remoteType === 'srflx';
+      const path = `${localType}->${remoteType}`;
+      document.getElementById('path-chip').textContent = `path: ${path}`;
+      const usingTurn = localType === 'relay' || remoteType === 'relay';
+      document.getElementById('turn-chip').textContent = `turn: ${usingTurn ? 'active' : 'not-used'}`;
+      document.getElementById('turn-chip').style.color = usingTurn ? '#48d597' : '#f2c14e';
+
+      if (!localCandidate || !remoteCandidate) {
+        log(`[ICE STATS] pair id=${pair.id} localCandidateId=${pair.localCandidateId} remoteCandidateId=${pair.remoteCandidateId}`);
+        log('[ICE STATS] local or remote candidate not found in stats output.');
+        const rawStats = Array.from(stats.values()).filter(r => r.type === 'local-candidate' || r.type === 'remote-candidate');
+        rawStats.forEach(r => log(`[ICE STATS] candidate stat: id=${r.id} type=${r.type} candidateType=${r.candidateType || 'n/a'} protocol=${r.protocol || 'n/a'} address=${r.address || r.ip || 'n/a'} port=${r.port || 'n/a'}`));
+      }
+      if (!usingTurn && activeProfile === 'relay') {
+        showTurnError('Relay-only profile is active but the connected pair is NOT relay. TURN is unreachable or credentials are wrong.');
+        stop();
+        return;
+      }
+
+      if (!usingTurn && activeProfile !== 'relay') {
+        log('[TURN DIAG] TURN not used because direct path (host/srflx) is currently better than relay.');
+      }
+    }
+
+    setKpi('kpi-jitter', `${jitter.toFixed(1)} ms`, classify('jitter', jitter));
+    setKpi('kpi-loss', `${lossRate.toFixed(2)} %`, classify('loss', lossRate));
+    setKpi('kpi-rtt', `${rtt.toFixed(1)} ms`, classify('rtt', rtt));
+    setKpi('kpi-bw', `${bw.toFixed(0)} kbps`, classify('bw', bw));
+
+    addSample({ jitter, loss: lossRate, rtt });
+    log(`[AUDIO] jitter=${jitter.toFixed(1)}ms loss=${lossRate.toFixed(2)}% | [ICE] rtt=${rtt.toFixed(1)}ms bw=${bw.toFixed(0)}kbps`);
+  } catch (e) {
+    log(`stats error: ${e.message}`);
+  }
+}
+
+async function start() {
+  if (pc) {
+    log('already running, stop first');
+    return;
+  }
+
+  try {
+    sawRelayCandidate = false;
+    sawSrflxCandidate = false;
+    iceCandidates = [];
+    clearTurnError();
+
+    const micConstraints = getMicConstraints(activeProfile);
+    log(`requesting microphone (${activeProfile})...`);
+    localStream = await navigator.mediaDevices.getUserMedia({ audio: micConstraints, video: false });
+    log('mic granted');
+
+    log('fetching ICE servers...');
+    const iceRes = await fetch(HOST + '/ice-servers');
+    const iceData = await iceRes.json();
+    let iceServers = iceData.iceServers || [];
+    const iceOk = summarizeIceServers(iceServers);
+    if (!iceOk) {
+      await stop();
+      return;
+    }
+
+    if (activeProfile === 'direct') {
+      iceServers = iceServers.filter(s => {
+        const urls = Array.isArray(s.urls) ? s.urls : [s.urls];
+        return !urls.some(u => String(u).startsWith('turn:') || String(u).startsWith('turns:'));
+      });
+      log('direct profile: TURN entries removed from ICE servers');
+    }
+
+    const pcOptions = { iceServers, ...configurePeerConnectionOptions(activeProfile) };
+    pc = new RTCPeerConnection(pcOptions);
+
+    pc.onicecandidateerror = e => {
+      const url = e.url || 'unknown-url';
+      const code = e.errorCode || 'unknown-code';
+      const text = e.errorText || 'no-text';
+      log(`[TURN ERROR] url=${url} code=${code} text=${text}`);
+      log('[TURN ERROR] Typical causes: bad TURN creds, blocked UDP/TCP ports, TLS cert issue for turns:, or server not reachable.');
+    };
+
+    pc.onicecandidate = e => {
+      if (!e.candidate) {
+        log('[ICE] Candidate gathering completed');
+        if (activeProfile === 'relay' && !sawRelayCandidate) {
+          showTurnError('No relay candidates were gathered. Check TURN URL, credentials, and that ports 3478/5349 are reachable.');
+          stop();
+        }
+        return;
+      }
+
+      const c = e.candidate.candidate || '';
+      const parsed = parseIceCandidate(c);
+      iceCandidates.push(parsed);
+      if (parsed.candType === 'relay') sawRelayCandidate = true;
+      if (parsed.candType === 'srflx') sawSrflxCandidate = true;
+
+      log(`[ICE CAND] type=${parsed.candType} proto=${parsed.proto} addr=${parsed.addr} port=${parsed.port} rel=${parsed.relAddr || '-'}:${parsed.relPort || '-'} onicecandidate url=${e.url || 'n/a'}`);
+      log(`[ICE CAND RAW] ${c}`);
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      const state = pc.iceConnectionState;
+      setState(state, state === 'connected' ? '#48d597' : '#f2c14e');
+      log(`ICE state: ${state}`);
+      if (state === 'connected' && !statsInterval) {
+        log('stats monitoring started');
+        statsInterval = setInterval(logStats, 2000);
+      }
+      if (state === 'failed') {
+        setState('failed', '#ef5b5b');
+        if (activeProfile === 'relay') {
+          showTurnError('Relay-only ICE connection failed. TURN is misconfigured or unreachable from this network.');
+        }
+      }
+    };
+
+    pc.onconnectionstatechange = () => {
+      log(`connection state: ${pc.connectionState}`);
+    };
+
+
+    pc.ontrack = e => {
+      log(`remote track received: ${e.track.kind}`);
+      if (e.track.kind === 'audio') {
+        const audio = new Audio();
+        audio.srcObject = e.streams[0];
+        audio.play().catch(err => log(`audio playback blocked: ${err.message}`));
+        log('playing remote audio');
+      }
+    };
+
+    localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+    applySenderTuning(activeProfile);
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    log('created offer, posting to /offer...');
+
+    const r = await fetch(HOST + '/offer?interview_type=part1', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sdp: offer.sdp, type: offer.type })
+    });
+    const ans = await r.json();
+    pcId = ans.pc_id;
+    log(`got answer, pc_id=${pcId}`);
+
+    await pc.setRemoteDescription({ sdp: ans.sdp, type: ans.type });
+    log('remote description set');
+    setState('connecting', '#f2c14e');
+  } catch (e) {
+    log(`ERROR: ${e.message}`);
+    setState('error', '#ef5b5b');
+  }
+}
+
+async function stop() {
+  if (statsInterval) {
+    clearInterval(statsInterval);
+    statsInterval = null;
+  }
+  if (pc) {
+    pc.close();
+    pc = null;
+  }
+  if (localStream) {
+    localStream.getTracks().forEach(t => t.stop());
+    localStream = null;
+  }
+  pcId = null;
+  setState('idle', '#8fa0b8');
+  clearTurnError();
+  document.getElementById('path-chip').textContent = 'path: -';
+  document.getElementById('turn-chip').textContent = 'turn: unknown';
+  document.getElementById('turn-chip').style.color = '#8fa0b8';
+  log('stopped');
+}
+
+setupProfileButtons();
+setProfileChip();
+drawTrend();
+</script>
+</body>
+</html>

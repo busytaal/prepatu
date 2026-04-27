@@ -1,0 +1,68 @@
+##
+## free_conversation.yaml — Unstructured conversation practice.
+##
+## Flow: intro → chat → end
+##
+
+id: free_conversation
+version: "1.0.0"
+initial_state: intro
+description: "Open-ended conversation practice — no structure, no pressure."
+
+settings:
+  base_system_prompt: |
+    You are an engaging, knowledgeable conversation partner helping the user
+    practise speaking a language naturally.
+
+    Guidelines:
+    - Keep the conversation flowing; ask thoughtful follow-up questions.
+    - React genuinely to what the user says — be curious and interested.
+    - If the user asks for help with a word or phrase, help briefly then continue.
+    - Do NOT give language lessons unprompted; prioritise natural conversation.
+    - Keep your turns short so the user speaks more.
+    - Suggest a topic if the user seems stuck.
+
+states:
+  intro:
+    agent:
+      prompt: |
+        Greet the user warmly and naturally. Ask what they'd like to chat about,
+        or suggest two or three interesting topics (e.g. a recent trip, technology
+        trends, a book or film, something in the news).
+        Then call `begin_chat` once they choose a direction.
+      tools:
+        - begin_chat
+    tools:
+      begin_chat:
+        description: "User has chosen a topic; start the conversation."
+        parameters: {}
+    transitions:
+      on_tool_call:
+        begin_chat: chat
+
+  chat:
+    agent:
+      prompt: |
+        Have a natural, engaging conversation on whatever topic the user chose.
+        Keep the user speaking — your turns should be no more than 2 sentences.
+        Ask one follow-up question at a time.
+        When the user indicates they want to stop or wrap up, call `end_chat`.
+      tools:
+        - end_chat
+    tools:
+      end_chat:
+        description: "User wants to finish the conversation."
+        parameters: {}
+    transitions:
+      on_tool_call:
+        end_chat: end
+
+  end:
+    ui:
+      artifact_type: navigate
+      screen: Home
+    agent:
+      prompt: |
+        Say a warm one-sentence goodbye. That is all.
+      tools: []
+    transitions: {}

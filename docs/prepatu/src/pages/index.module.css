@@ -1,0 +1,95 @@
+.heroBanner {
+  padding: 4rem 1.5rem 2.5rem;
+  text-align: center;
+}
+
+.heroInner {
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.logo {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  /* SVG is black-fill — show as white on dark, as-is on light */
+  filter: drop-shadow(0 0 16px rgba(74, 144, 226, 0.2));
+}
+
+[data-theme='dark'] .logo {
+  filter: invert(1) drop-shadow(0 0 16px rgba(74, 144, 226, 0.3));
+}
+
+/* dictionary entry line */
+.entry {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.wordmark {
+  font-family: Georgia, serif;
+  font-size: 2.4rem;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.pronunciation {
+  font-family: Georgia, serif;
+  font-size: 1rem;
+  font-style: italic;
+  color: var(--prepatu-text-muted);
+}
+
+.pos {
+  font-size: 0.75rem;
+  color: var(--ifm-color-primary);
+  font-style: italic;
+}
+
+.definition {
+  font-family: Georgia, serif;
+  font-size: 0.9rem;
+  font-style: italic;
+  color: var(--prepatu-text-muted);
+  margin: 0;
+}
+
+.buttons {
+  display: flex;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+
+.btnPrimary {
+  background: var(--ifm-color-primary);
+  border: 1.5px solid var(--ifm-color-primary);
+  color: #fff !important;
+}
+
+.btnPrimary:hover {
+  background: var(--ifm-color-primary-light);
+  border-color: var(--ifm-color-primary-light);
+  text-decoration: none;
+}
+
+.btnSecondary {
+  background: transparent;
+  border: 1.5px solid var(--prepatu-border);
+  color: var(--ifm-font-color-base) !important;
+}
+
+.btnSecondary:hover {
+  border-color: var(--ifm-color-primary);
+  color: var(--ifm-color-primary) !important;
+  text-decoration: none;
+}

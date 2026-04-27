@@ -1,0 +1,46 @@
+.features {
+  padding: 3rem 0 5rem;
+}
+
+.featureGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+}
+
+.featureCard {
+  background: var(--prepatu-surface);
+  border: 1px solid var(--prepatu-border);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.tag {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ifm-color-primary);
+  margin-bottom: 0.75rem;
+}
+
+.featureTitle {
+  font-size: 1.05rem;
+  font-weight: 400;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.01em;
+}
+
+.featureDesc {
+  font-size: 0.88rem;
+  color: var(--prepatu-text-muted);
+  line-height: 1.65;
+  margin: 0;
+}
+
+@media screen and (max-width: 768px) {
+  .featureGrid {
+    grid-template-columns: 1fr;
+  }
+}

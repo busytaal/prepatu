@@ -1,0 +1,20 @@
+{
+  "transport": "webrtc",
+  "allow_upgrade": true,
+  "pipeline_mode": "stt_llm_tts",
+  "stt_provider": "",
+  "tts_provider": "",
+  "llm_provider": "",
+  "llm_model": "",
+  "vad_stop_secs": 0.8,
+  "client_vad_ui": true,
+  "max_session_secs": 0,
+  "default_interview": "idle",
+  "qos_panel": true,
+  "show_transcript": true,
+  "force_onboarding": true,
+  "maintenance": false,
+  "maintenance_msg": "Service is temporarily unavailable.",
+  "audio_sample_rate": 16000,
+  "audio_encoding": "pcm_s16le"
+}

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prepatu — Appointment Booking Demo</title>
+  </head>
+  <body>
+
+    <!-- ── Setup screen ───────────────────────────────────────────────── -->
+    <div id="setup-screen">
+      <div class="setup-card">
+        <div class="logo">
+          <span class="logo-mark">🎙</span>
+          <span class="logo-name">Prepatu Voice Demo</span>
+          <span class="logo-tag">Appointment Booking Wizard</span>
+        </div>
+
+        <div class="setup-steps">
+          <strong>Before you start:</strong>
+          <ol>
+            <li>Run the cloud service: <code>python main.py</code> in <code>services/cloud/</code></li>
+            <li>Sign in at <a href="http://localhost:4000/ui" target="_blank">localhost:4000/ui</a>, create an API key</li>
+            <li>Upload <code>flow.yaml</code> via Flows tab — copy the Flow ID</li>
+          </ol>
+        </div>
+
+        <div id="setup-error" class="error-msg" hidden></div>
+
+        <div class="field">
+          <label>Cloud URL</label>
+          <input id="cloud-url" type="url" value="http://localhost:4000">
+        </div>
+        <div class="field">
+          <label>API Key</label>
+          <input id="api-key" type="password" class="mono" placeholder="pk_live_..." autocomplete="off">
+        </div>
+        <div class="field">
+          <label>Flow ID</label>
+          <input id="flow-id" type="text" class="mono" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off">
+        </div>
+
+        <button class="btn-connect" id="connect-btn">Connect &amp; Start →</button>
+      </div>
+    </div>
+
+    <!-- ── Wizard screen ──────────────────────────────────────────────── -->
+    <div id="wizard-screen" hidden>
+
+      <header class="wizard-header">
+        <div class="wizard-title">APPOINTMENT BOOKING</div>
+        <div class="steps-track">
+          <div class="step-node">
+            <div class="step-bubble" id="bubble-1">1</div>
+            <div class="step-label" id="label-1">Contact</div>
+          </div>
+          <div class="step-line" id="line-1"></div>
+          <div class="step-node">
+            <div class="step-bubble" id="bubble-2">2</div>
+            <div class="step-label" id="label-2">Appointment</div>
+          </div>
+          <div class="step-line" id="line-2"></div>
+          <div class="step-node">
+            <div class="step-bubble" id="bubble-3">3</div>
+            <div class="step-label" id="label-3">Confirm</div>
+          </div>
+        </div>
+      </header>
+
+      <div class="wizard-body">
+
+        <div class="content-panel">
+          <div id="content-area">
+            <div class="loading-state">
+              <div class="spinner"></div>
+              Connecting to voice agent…
+            </div>
+          </div>
+        </div>
+
+        <div class="voice-panel">
+          <div class="orb-section">
+            <div class="orb-wrap">
+              <div class="orb-ring idle" id="orb-ring"></div>
+              <div class="orb-core idle" id="orb-core">🎙</div>
+            </div>
+            <div class="orb-status idle" id="orb-status">Connecting…</div>
+            <button class="btn-disconnect" id="btn-disconnect">Disconnect</button>
+          </div>
+
+          <div class="transcript-section">
+            <div class="transcript-header">Conversation</div>
+            <div class="transcript-feed" id="transcript-feed">
+              <div class="transcript-placeholder">Conversation will appear here…</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ── Debug panel ──────────────────────────────────────────── -->
+      <div id="debug-panel">
+        <div class="debug-header">
+          <span>WS Frames</span>
+          <button id="debug-clear">clear</button>
+        </div>
+        <div class="debug-feed" id="debug-feed"></div>
+      </div>
+
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

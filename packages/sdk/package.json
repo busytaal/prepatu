@@ -1,0 +1,23 @@
+{
+  "name": "@prepatu/sdk",
+  "version": "0.1.0",
+  "description": "Prepatu Voice SDK — managed and self-hosted voice flows",
+  "main": "dist/index.js",
+  "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.esm.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "devDependencies": {
+    "typescript": "~5.6.0"
+  },
+  "license": "MIT"
+}

@@ -1,0 +1,179 @@
+/*
+ * Prepatu Voice Design Language — Web Translation
+ * Source tokens: apps/ielts/mobile/src/design/DESIGN_LANGUAGE.md §7
+ *
+ * Primary accent  : #4A90E2  (orb.speaking — agent-active blue)
+ * Listening accent: #3ECF6A  (orb.listening — mic open green)
+ * Warning / mute  : #E8A020  (orb.connecting — amber)
+ * Background base : #0A0A14  (deepest layer, dark-canonical)
+ * Surface         : #12121E
+ * Elevated        : #1A1A28
+ * Card / pill bg  : #1E1E30
+ * Border          : #2E2E44
+ * Text primary    : #E0E0F0
+ * Text muted      : #6B6B80
+ */
+
+/* ── Light mode (sidelined — dark is canonical) ──────────── */
+:root {
+  --ifm-color-primary: #2060aa;
+  --ifm-color-primary-dark: #1a5090;
+  --ifm-color-primary-darker: #154880;
+  --ifm-color-primary-darkest: #0e3060;
+  --ifm-color-primary-light: #2e78cc;
+  --ifm-color-primary-lighter: #3a82d8;
+  --ifm-color-primary-lightest: #4A90E2;
+  --ifm-code-font-size: 92%;
+  --ifm-font-weight-bold: 500;
+  --docusaurus-highlighted-code-line-bg: rgba(74, 144, 226, 0.1);
+
+  --ifm-navbar-background-color: #EBEBF5;
+  --ifm-background-color: #F5F5FA;
+  --ifm-background-surface-color: #EBEBF5;
+  --ifm-footer-background-color: #0A0A14;
+  --ifm-footer-color: #6B6B80;
+  --ifm-footer-link-color: #4A90E2;
+  --ifm-footer-title-color: #E0E0F0;
+
+  --prepatu-surface: #E4E4F0;
+  --prepatu-elevated: #DDDDF0;
+  --prepatu-border: #CACAE0;
+  --prepatu-text-muted: #5A5A70;
+  --prepatu-green: #3ECF6A;
+  --prepatu-amber: #E8A020;
+}
+
+/* ── Dark mode (canonical — matches voice design language) ── */
+[data-theme='dark'] {
+  /* Primary — orb.speaking blue */
+  --ifm-color-primary: #4A90E2;
+  --ifm-color-primary-dark: #3a82d8;
+  --ifm-color-primary-darker: #2e78cc;
+  --ifm-color-primary-darkest: #2060aa;
+  --ifm-color-primary-light: #5a9fe8;
+  --ifm-color-primary-lighter: #66a8ec;
+  --ifm-color-primary-lightest: #80bbf2;
+  --docusaurus-highlighted-code-line-bg: rgba(74, 144, 226, 0.15);
+
+  /* Background palette */
+  --ifm-background-color: #0A0A14;
+  --ifm-background-surface-color: #12121E;
+  --ifm-navbar-background-color: #12121E;
+  --ifm-footer-background-color: #0A0A14;
+  --ifm-footer-color: #6B6B80;
+  --ifm-footer-link-color: #4A90E2;
+  --ifm-footer-title-color: #E0E0F0;
+
+  /* Typography */
+  --ifm-font-color-base: #E0E0F0;
+  --ifm-font-color-secondary: #6B6B80;
+  --ifm-heading-color: #F0F0FF;
+
+  /* Borders */
+  --ifm-color-emphasis-200: #1E1E30;
+  --ifm-color-emphasis-300: #2E2E44;
+  --ifm-toc-border-color: #2E2E44;
+  --ifm-hr-border-color: #2E2E44;
+  --ifm-table-border-color: #2E2E44;
+
+  /* Code */
+  --ifm-code-background: #12121E;
+  --prism-background-color: #0A0A14;
+
+  /* Prepatu surface tokens */
+  --prepatu-surface: #1E1E30;
+  --prepatu-elevated: #1A1A28;
+  --prepatu-border: #2E2E44;
+  --prepatu-text-muted: #6B6B80;
+  --prepatu-green: #3ECF6A;
+  --prepatu-amber: #E8A020;
+}
+
+/* ── Typography — light weights, voice-first feel ─────────── */
+h1, h2, h3 {
+  font-weight: 300;
+  letter-spacing: -0.02em;
+}
+
+h4, h5, h6 {
+  font-weight: 400;
+}
+
+/* ── Navbar — surface bg, no shadow ─────────────────────────*/
+.navbar {
+  border-bottom: 1px solid var(--prepatu-border);
+  box-shadow: none;
+}
+
+.navbar__title {
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+/* ── Sidebar ─────────────────────────────────────────────── */
+[data-theme='dark'] .theme-doc-sidebar-container {
+  background: var(--ifm-background-surface-color);
+  border-right: 1px solid var(--prepatu-border) !important;
+}
+
+/* ── Code blocks — dark base, orb-blue highlight ─────────── */
+[data-theme='dark'] .prism-code {
+  background: #0A0A14 !important;
+}
+
+/* ── Admonitions ─────────────────────────────────────────── */
+[data-theme='dark'] .alert {
+  background: var(--prepatu-surface);
+  border-color: var(--prepatu-border);
+}
+
+[data-theme='dark'] .alert--info {
+  border-left-color: var(--ifm-color-primary);
+}
+
+[data-theme='dark'] .alert--warning {
+  border-left-color: var(--prepatu-amber);
+}
+
+[data-theme='dark'] .alert--success {
+  border-left-color: var(--prepatu-green);
+}
+
+/* ── Tables ──────────────────────────────────────────────── */
+[data-theme='dark'] tr:nth-child(2n) {
+  background: var(--prepatu-surface);
+}
+
+/* ── Buttons — pill style from design language §6 ─────────── */
+.button {
+  border-radius: 999px !important;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+/* ── Doc content card tone ───────────────────────────────── */
+[data-theme='dark'] .card {
+  background: var(--prepatu-surface);
+  border: 1px solid var(--prepatu-border);
+  box-shadow: none;
+}
+
+/* ── TOC ─────────────────────────────────────────────────── */
+[data-theme='dark'] .table-of-contents__link {
+  color: var(--prepatu-text-muted);
+}
+
+[data-theme='dark'] .table-of-contents__link--active {
+  color: var(--ifm-color-primary);
+  font-weight: 500;
+}
+
+/* ── Pagination ──────────────────────────────────────────── */
+[data-theme='dark'] .pagination-nav__link {
+  background: var(--prepatu-surface);
+  border-color: var(--prepatu-border);
+}
+
+[data-theme='dark'] .pagination-nav__link:hover {
+  border-color: var(--ifm-color-primary);
+}

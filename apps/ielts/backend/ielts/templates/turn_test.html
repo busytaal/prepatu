@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Simple TURN Relay Test</title>
+  <style>
+    body { margin: 0; padding: 18px; font-family: system-ui, sans-serif; background: #07101d; color: #e8f1ff; }
+    h1 { margin-top: 0; font-size: 24px; }
+    label { display: block; margin: 12px 0 4px; font-size: 13px; color: #a8bfdf; }
+    input[type=text], input[type=password] { width: 100%; padding: 10px 12px; border: 1px solid #2e4366; border-radius: 8px; background: #0f1a2c; color: #eef; }
+    button { margin-right: 10px; margin-top: 10px; padding: 10px 16px; border: 1px solid #3c5f88; border-radius: 10px; background: #162b48; color: #eef; cursor: pointer; }
+    button:hover { background: #1f3f62; }
+    #log { margin-top: 16px; padding: 14px; border: 1px solid #2e4366; border-radius: 12px; background: #081121; color: #d8e8ff; height: 260px; overflow-y: auto; white-space: pre-wrap; }
+    #status { margin-top: 12px; font-size: 14px; }
+    .note { margin-top: 8px; color: #8fa0b8; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>Simple TURN Relay Test</h1>
+  <p class="note">This page creates two RTCPeerConnections in the browser and forces relay-only ICE. It checks whether your TURN server can allocate relay candidates.</p>
+
+  <label for="turnUrl">TURN URL</label>
+  <input id="turnUrl" type="text" value="turns:lekha.li:3478?transport=tcp" placeholder="turn:your.turn.server:3478" />
+
+  <label for="turnUser">TURN Username</label>
+  <input id="turnUser" type="text" value="hiro" placeholder="username" />
+
+  <label for="turnPass">TURN Password</label>
+  <input id="turnPass" type="password" value="iamroot" placeholder="credential" />
+
+  <label><input id="withStun" type="checkbox" checked /> Include STUN server too</label>
+
+  <div>
+    <button id="startBtn">Start Relay Test</button>
+    <button id="stopBtn">Stop</button>
+  </div>
+
+  <div id="status">status: idle</div>
+  <div id="log">-- press Start Relay Test --</div>
+
+  <script>
+    const logEl = document.getElementById('log');
+    const statusEl = document.getElementById('status');
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    let pc1 = null;
+    let pc2 = null;
+    let statsTimer = null;
+
+    function appendLog(message) {
+      logEl.textContent += `[${new Date().toISOString()}] ${message}\n`;
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function setStatus(message, color = '#d8e8ff') {
+      statusEl.textContent = `status: ${message}`;
+      statusEl.style.color = color;
+    }
+
+    function buildIceServers() {
+      const turnUrl = document.getElementById('turnUrl').value.trim();
+      const turnUser = document.getElementById('turnUser').value.trim();
+      const turnPass = document.getElementById('turnPass').value.trim();
+      const withStun = document.getElementById('withStun').checked;
+
+      const iceServers = [];
+      if (withStun) {
+        iceServers.push({ urls: ['stun:stun.l.google.com:19302'] });
+      }
+      if (turnUrl) {
+        iceServers.push({ urls: [turnUrl], username: turnUser, credential: turnPass });
+      }
+      return iceServers;
+    }
+
+    function onIceCandidate(pcName, event) {
+      if (!event.candidate) {
+        appendLog(`${pcName}: ICE candidate gathering complete`);
+        return;
+      }
+      const candidate = event.candidate;
+      appendLog(`${pcName}: candidate type=${candidate.type} protocol=${candidate.protocol || 'unknown'}`);
+      if (pcName === 'pc1' && pc2) pc2.addIceCandidate(candidate).catch(err => appendLog(`pc2 addIceCandidate error: ${err.message}`));
+      if (pcName === 'pc2' && pc1) pc1.addIceCandidate(candidate).catch(err => appendLog(`pc1 addIceCandidate error: ${err.message}`));
+    }
+
+    async function startTest() {
+      stopTest();
+      setStatus('starting...', '#79c4ff');
+      appendLog('Starting TURN relay test');
+
+      const iceServers = buildIceServers();
+      if (!iceServers.length) {
+        appendLog('No ICE servers configured. Add a TURN URL first.');
+        setStatus('configuration missing', '#f55');
+        return;
+      }
+      appendLog(`ICE servers: ${JSON.stringify(iceServers)}`);
+
+      const rtcConfig = { iceServers, iceTransportPolicy: 'relay' };
+      pc1 = new RTCPeerConnection(rtcConfig);
+      pc2 = new RTCPeerConnection(rtcConfig);
+
+      pc1.onicecandidate = event => onIceCandidate('pc1', event);
+      pc2.onicecandidate = event => onIceCandidate('pc2', event);
+
+      pc1.oniceconnectionstatechange = () => {
+        appendLog(`pc1 ice state=${pc1.iceConnectionState}`);
+        if (pc1.iceConnectionState === 'connected') setStatus('connected via TURN relay', '#7fffa4');
+        if (pc1.iceConnectionState === 'failed') setStatus('failed', '#ff7f7f');
+      };
+      pc2.oniceconnectionstatechange = () => {
+        appendLog(`pc2 ice state=${pc2.iceConnectionState}`);
+        if (pc2.iceConnectionState === 'connected') setStatus('connected via TURN relay', '#7fffa4');
+        if (pc2.iceConnectionState === 'failed') setStatus('failed', '#ff7f7f');
+      };
+
+      const channel = pc1.createDataChannel('turn-test');
+      channel.onopen = () => appendLog('pc1 data channel opened');
+      channel.onmessage = e => appendLog(`pc1 received: ${e.data}`);
+      pc2.ondatachannel = event => {
+        const remoteChannel = event.channel;
+        remoteChannel.onopen = () => {
+          appendLog('pc2 data channel opened');
+          remoteChannel.send('hello from pc2');
+        };
+        remoteChannel.onmessage = e => appendLog(`pc2 received: ${e.data}`);
+      };
+
+      try {
+        const offer = await pc1.createOffer();
+        await pc1.setLocalDescription(offer);
+        appendLog('pc1 local description set');
+        await pc2.setRemoteDescription(offer);
+        const answer = await pc2.createAnswer();
+        await pc2.setLocalDescription(answer);
+        appendLog('pc2 local description set');
+        await pc1.setRemoteDescription(answer);
+        appendLog('pc1 remote description set');
+      } catch (err) {
+        appendLog(`ERROR: ${err.message}`);
+        setStatus('error', '#ff7f7f');
+        return;
+      }
+
+      statsTimer = setInterval(async () => {
+        if (!pc1) return;
+        try {
+          const stats = await pc1.getStats();
+          stats.forEach(report => {
+            if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+              appendLog(`active pair: ${report.localCandidateType} -> ${report.remoteCandidateType}, rtt=${Math.round((report.currentRoundTripTime || 0) * 1000)}ms`);
+            }
+          });
+        } catch (err) {
+          appendLog(`stats error: ${err.message}`);
+        }
+      }, 3000);
+    }
+
+    function stopTest() {
+      if (statsTimer) {
+        clearInterval(statsTimer);
+        statsTimer = null;
+      }
+      if (pc1) {
+        pc1.close();
+        pc1 = null;
+      }
+      if (pc2) {
+        pc2.close();
+        pc2 = null;
+      }
+      setStatus('idle', '#d8e8ff');
+      appendLog('Test stopped');
+    }
+
+    startBtn.addEventListener('click', startTest);
+    stopBtn.addEventListener('click', stopTest);
+  </script>
+</body>
+</html>
