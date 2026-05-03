@@ -74,4 +74,5 @@ volumes:
 networks:
   observability:
   external:
+    name: prepatu-external
     external: true   # shared with the main stack
