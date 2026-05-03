@@ -7,14 +7,16 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent.parent
 
+# apps/ielts/backend on path so `main` and `ielts.*` resolve from tests.
+IELTS_BACKEND = ROOT / "apps" / "ielts" / "backend"
+
 # Repo root — needed so `backend.*` still resolves (legacy, pre-deletion).
+# Insert ROOT first, then IELTS_BACKEND so IELTS_BACKEND wins over root's main.py.
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-# apps/ielts/backend on path so `main` and `ielts.*` resolve from tests.
-IELTS_BACKEND = ROOT / "apps" / "ielts" / "backend"
-if str(IELTS_BACKEND) not in sys.path:
-    sys.path.insert(0, str(IELTS_BACKEND))
+# Always insert at 0 so it takes priority over root main.py.
+sys.path.insert(0, str(IELTS_BACKEND))
 
 # ── Test constants ────────────────────────────────────────────────────────────
 

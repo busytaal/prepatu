@@ -25,6 +25,7 @@ vfdl = { workspace = true }
 testpaths = ["tests"]
 asyncio_mode = "auto"
 filterwarnings = ["ignore::DeprecationWarning"]
+pythonpath = ["apps/ielts/backend"]
 
 [tool.pyright]
 extraPaths = ["apps/ielts/backend"]
