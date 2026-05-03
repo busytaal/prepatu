@@ -22,8 +22,6 @@ from pipecat.pipeline.task import PipelineParams, PipelineTask
 from pipecat.processors.aggregators.llm_context import LLMContext
 from pipecat.processors.aggregators.llm_response_universal import LLMContextAggregatorPair
 from pipecat.transports.base_transport import TransportParams
-from pipecat.transports.smallwebrtc.connection import SmallWebRTCConnection
-from pipecat.transports.smallwebrtc.transport import SmallWebRTCTransport
 
 from vfdl.providers import create_llm, create_stt, create_tts
 from vfdl.agents.flow_engine import VoiceFlowController, load_flow
@@ -66,7 +64,7 @@ def extract_context_messages(context: LLMContext) -> list[dict]:
 
 
 async def run_bot(
-    connection: SmallWebRTCConnection,
+    connection,  # SmallWebRTCConnection — imported lazily below
     system_prompt: str,
     tools=None,
     control_ws=None,
@@ -97,6 +95,8 @@ async def run_bot(
         invoked when the session ends.  The app uses this to trigger
         post-session scoring without the engine importing evaluator code.
     """
+    from pipecat.transports.smallwebrtc.connection import SmallWebRTCConnection  # noqa: F401
+    from pipecat.transports.smallwebrtc.transport import SmallWebRTCTransport
     transport = SmallWebRTCTransport(
         webrtc_connection=connection,
         params=TransportParams(
