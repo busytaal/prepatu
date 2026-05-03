@@ -1,5 +1,5 @@
 """
-SQLite store for the cloud service.
+PostgreSQL store for the cloud service — backed by asyncpg connection pool.
 
 Tables:
   users          — accounts
@@ -7,24 +7,27 @@ Tables:
   credits        — current USD-cent balance per account
   provider_keys  — per-account provider configuration
   sessions       — session usage records
+  flows          — per-account VFDL flow YAML documents
 """
 
 from __future__ import annotations
 
-import aiosqlite
+from typing import AsyncGenerator
+
+import asyncpg
 from loguru import logger
 
 from cloud.config import settings
 
-DB_PATH = settings.db_path
+_pool: asyncpg.Pool | None = None
 
-CREATE_STATEMENTS = [
+_CREATE_STATEMENTS = [
     """
     CREATE TABLE IF NOT EXISTS users (
         id          TEXT PRIMARY KEY,
         email       TEXT UNIQUE NOT NULL,
         hashed_pw   TEXT NOT NULL,
-        created_at  REAL NOT NULL
+        created_at  DOUBLE PRECISION NOT NULL
     )
     """,
     """
@@ -32,7 +35,7 @@ CREATE_STATEMENTS = [
         key         TEXT PRIMARY KEY,
         user_id     TEXT NOT NULL REFERENCES users(id),
         label       TEXT NOT NULL DEFAULT '',
-        created_at  REAL NOT NULL,
+        created_at  DOUBLE PRECISION NOT NULL,
         revoked     INTEGER NOT NULL DEFAULT 0
     )
     """,
@@ -58,33 +61,45 @@ CREATE_STATEMENTS = [
         token           TEXT PRIMARY KEY,
         user_id         TEXT NOT NULL REFERENCES users(id),
         flow_id         TEXT,
-        started_at      REAL NOT NULL,
-        ended_at        REAL,
+        started_at      DOUBLE PRECISION NOT NULL,
+        ended_at        DOUBLE PRECISION,
         duration_secs   INTEGER
     )
     """,
     """
     CREATE TABLE IF NOT EXISTS flows (
-        id          TEXT PRIMARY KEY,
-        user_id     TEXT NOT NULL REFERENCES users(id),
-        name        TEXT NOT NULL,
+        id           TEXT PRIMARY KEY,
+        user_id      TEXT NOT NULL REFERENCES users(id),
+        name         TEXT NOT NULL,
         yaml_content TEXT NOT NULL,
-        created_at  REAL NOT NULL
+        created_at   DOUBLE PRECISION NOT NULL
     )
     """,
 ]
 
 
 async def init_db() -> None:
-    async with aiosqlite.connect(DB_PATH) as db:
-        for stmt in CREATE_STATEMENTS:
-            await db.execute(stmt)
-        await db.commit()
-    logger.info(f"[store] Database ready at {DB_PATH}")
+    """Create the connection pool and ensure all tables exist."""
+    global _pool
+    _pool = await asyncpg.create_pool(
+        settings.database_url,
+        min_size=settings.db_pool_min,
+        max_size=settings.db_pool_max,
+    )
+    async with _pool.acquire() as conn:
+        for stmt in _CREATE_STATEMENTS:
+            await conn.execute(stmt)
+    logger.info("[store] PostgreSQL pool ready (min={} max={})", settings.db_pool_min, settings.db_pool_max)
 
 
-async def get_db() -> aiosqlite.Connection:
-    """Dependency-injection helper for FastAPI routes."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        yield db
+async def close_db() -> None:
+    """Gracefully close the connection pool on shutdown."""
+    if _pool:
+        await _pool.close()
+
+
+async def get_db() -> AsyncGenerator[asyncpg.Connection, None]:
+    """FastAPI dependency — yields a connection from the pool."""
+    assert _pool is not None, "Database pool not initialised — was init_db() called?"
+    async with _pool.acquire() as conn:
+        yield conn

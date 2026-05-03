@@ -1,0 +1,52 @@
+# .github/workflows/deploy.yml
+# Triggered automatically after CI passes on the main branch.
+# SSHs into the VPS, pulls the new image, and restarts the cloud service.
+#
+# Required GitHub repository secrets:
+#   VPS_HOST      — IP or hostname of your VPS
+#   VPS_USER      — SSH username (e.g. deploy)
+#   VPS_SSH_KEY   — private SSH key (the matching public key must be in
+#                   ~/.ssh/authorized_keys on the VPS)
+#
+# Optional secrets (if /opt/prepatu/deploy/.env already exists on the VPS
+# and contains all the values, you don't need to pass them here):
+#   POSTGRES_PASSWORD, JWT_SECRET, METRICS_TOKEN, etc.
+
+name: Deploy to VPS
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types:     [completed]
+    branches:  [main]
+
+jobs:
+  deploy:
+    name: Rolling deploy
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host:     ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key:      ${{ secrets.VPS_SSH_KEY }}
+          # The deploy directory must already be set up on the VPS.
+          # See deploy/RUNBOOK.md for first-time setup instructions.
+          script: |
+            set -euo pipefail
+            cd /opt/prepatu/deploy
+
+            echo "==> Pulling latest cloud image"
+            docker compose pull cloud
+
+            echo "==> Restarting cloud service (zero-downtime rolling)"
+            docker compose up -d --no-deps --wait cloud
+
+            echo "==> Pruning old images"
+            docker image prune -f
+
+            echo "==> Deploy complete"
+            docker compose ps cloud

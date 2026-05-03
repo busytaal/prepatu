@@ -25,7 +25,7 @@ function HomepageHeader() {
         </p>
 
         <div className={styles.buttons}>
-          <Link className={clsx('button button--lg', styles.btnPrimary)} to="/docs/intro">
+          <Link className={clsx('button button--lg', styles.btnPrimary)} to="/docs/">
             Get Started
           </Link>
           <Link className={clsx('button button--lg', styles.btnSecondary)} href="https://github.com/busytaal/prepatu">

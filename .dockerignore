@@ -1,0 +1,35 @@
+# .dockerignore — repo root
+# Keeps the build context lean by excluding dev/test artefacts.
+
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+
+# Node
+**/node_modules
+**/dist
+**/.next
+**/build
+
+# Env files (never bake secrets into the image)
+**/.env
+**/.env.*
+!**/.env.example
+
+# VCS
+.git
+.gitignore
+
+# Docs / plans (not needed in the image)
+docs/
+plans.md/
+spec/
+
+# Tests (not needed in the image)
+tests/
+
+# Local SQLite leftover from old implementation
+*.db

@@ -4,8 +4,8 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
   title: 'Prepatu',
-  tagline: 'Voice Flow Engine & SDK',
-  favicon: 'img/favicon.ico',
+  tagline: 'Build reliable voice agents with YAML',
+  favicon: 'img/prepatu_logo.svg',
 
   future: {
     v4: true,
@@ -47,10 +47,10 @@ const config: Config = {
       respectPrefersColorScheme: true,
     },
     navbar: {
-      title: 'Prepatu',
+      title: '',
       logo: {
         alt: 'Prepatu Logo',
-        src: 'img/logo.svg',
+        src: 'img/prepatu_logo.svg',
       },
       items: [
         {
@@ -61,8 +61,9 @@ const config: Config = {
         },
         {
           href: 'https://github.com/busytaal/prepatu',
-          label: 'GitHub',
           position: 'right',
+          className: 'header-github-link',
+          'aria-label': 'GitHub repository',
         },
       ],
     },
@@ -70,11 +71,19 @@ const config: Config = {
       style: 'dark',
       links: [
         {
-          title: 'Docs',
+          title: 'Learn',
           items: [
-            {label: 'Introduction', to: '/docs/intro'},
-            {label: 'Getting Started', to: '/docs/getting-started/installation'},
-            {label: 'Flow YAML Reference', to: '/docs/concepts/flow-yaml'},
+            {label: 'Introduction', to: '/docs/'},
+            {label: 'Cloud Quickstart', to: '/docs/getting-started/cloud-quickstart'},
+            {label: 'Writing Flows', to: '/docs/flows/first-flow'},
+          ],
+        },
+        {
+          title: 'Examples',
+          items: [
+            {label: '10 Questions Game', to: '/docs/examples/ten-questions'},
+            {label: 'Booking Wizard', to: '/docs/examples/booking-wizard'},
+            {label: 'IELTS Coach', to: '/docs/examples/ielts-coach'},
           ],
         },
         {
@@ -92,6 +101,7 @@ const config: Config = {
     prism: {
       theme: prismThemes.github,
       darkTheme: prismThemes.dracula,
+      additionalLanguages: ['python', 'yaml', 'bash', 'typescript', 'json'],
     },
   } satisfies Preset.ThemeConfig,
 };

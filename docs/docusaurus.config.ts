@@ -4,7 +4,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
   title: 'Prepatu',
-  tagline: 'Voice Flow Engine & SDK',
+  tagline: 'Build reliable voice agents with YAML',
   favicon: 'img/favicon.ico',
 
   url: 'https://busytaal.github.io',
@@ -28,7 +28,6 @@ const config: Config = {
         docs: {
           sidebarPath: './sidebars.ts',
           editUrl: 'https://github.com/busytaal/prepatu/edit/main/docs/',
-          // Enable versioning
           lastVersion: 'current',
           versions: {
             current: {
@@ -61,12 +60,6 @@ const config: Config = {
           label: 'Docs',
         },
         {
-          type: 'docSidebar',
-          sidebarId: 'tutorialSidebar',
-          position: 'left',
-          label: 'Tutorial',
-        },
-        {
           type: 'docsVersionDropdown',
           position: 'right',
         },
@@ -81,11 +74,19 @@ const config: Config = {
       style: 'dark',
       links: [
         {
-          title: 'Docs',
+          title: 'Learn',
           items: [
-            {label: 'Introduction', to: '/docs/intro'},
-            {label: 'Flow YAML', to: '/docs/concepts/flow-yaml'},
-            {label: 'Browser SDK', to: '/docs/sdk/browser'},
+            {label: 'Introduction', to: '/docs/'},
+            {label: 'Cloud Quickstart', to: '/docs/getting-started/cloud-quickstart'},
+            {label: 'Writing Flows', to: '/docs/flows/first-flow'},
+          ],
+        },
+        {
+          title: 'Examples',
+          items: [
+            {label: '10 Questions Game', to: '/docs/examples/ten-questions'},
+            {label: 'Booking Wizard', to: '/docs/examples/booking-wizard'},
+            {label: 'IELTS Coach', to: '/docs/examples/ielts-coach'},
           ],
         },
         {

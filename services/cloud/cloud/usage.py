@@ -10,7 +10,7 @@ from __future__ import annotations
 import secrets
 import time
 
-import aiosqlite
+import asyncpg
 
 from cloud.config import settings
 from cloud.credits import check_has_credits, get_balance
@@ -20,7 +20,7 @@ from cloud.models import SessionStartRequest, SessionStartResponse
 async def start_session(
     user_id: str,
     body: SessionStartRequest,
-    db: aiosqlite.Connection,
+    db: asyncpg.Connection,
 ) -> SessionStartResponse:
     await check_has_credits(user_id, db)
 
@@ -28,10 +28,9 @@ async def start_session(
     started_at = time.time()
 
     await db.execute(
-        "INSERT INTO sessions (token, user_id, flow_id, started_at) VALUES (?, ?, ?, ?)",
-        (token, user_id, body.flow_id, started_at),
+        "INSERT INTO sessions (token, user_id, flow_id, started_at) VALUES ($1, $2, $3, $4)",
+        token, user_id, body.flow_id, started_at,
     )
-    await db.commit()
 
     balance = await get_balance(user_id, db)
     ws_url  = f"{settings.public_base_url}/v1/ws/{token}"
@@ -41,3 +40,4 @@ async def start_session(
         ws_url=ws_url,
         credits_remaining=balance.balance_usd_cents,
     )
+

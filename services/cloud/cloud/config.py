@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from pydantic import EmailStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -13,21 +12,27 @@ class Settings(BaseSettings):
     jwt_expire_minutes: int = 60 * 24 * 7  # 7 days
 
     # ── Database ──────────────────────────────────────────────────────────────
-    db_path: str = "cloud.db"
+    # PostgreSQL DSN.  Example: postgresql://user:pass@host:5432/dbname
+    database_url: str = "postgresql://prepatu:prepatu@localhost:5432/prepatu_cloud"
+    db_pool_min: int = 2
+    db_pool_max: int = 10
 
     # ── Credits ───────────────────────────────────────────────────────────────
-    # Default rate charged per minute of conversation, in USD cents.
-    # Covers blended STT + TTS + LLM costs + margin.
-    default_rate_per_minute_usd_cents: int = 3  # $0.03 / min
-
-    # Sign-up free credit grant in USD cents
-    signup_credit_grant_usd_cents: int = 200  # $2.00
+    default_rate_per_minute_usd_cents: int = 3   # $0.03 / min
+    signup_credit_grant_usd_cents: int = 200     # $2.00
 
     # ── Managed backend ───────────────────────────────────────────────────────
-    # The public WebSocket base URL clients use to connect to this service.
-    # Used to construct ws_url in SessionStartResponse.
-    # In production: set to wss://api.prepatu.io
     public_base_url: str = "ws://localhost:4000"
+
+    # ── Logging & Observability ───────────────────────────────────────────────
+    # Set LOG_JSON=true in production to emit structured JSON logs.
+    log_json: bool = False
+    log_level: str = "INFO"
+    # Optional: OTLP gRPC endpoint for distributed tracing (e.g. http://otel-collector:4317).
+    # Leave empty to disable OpenTelemetry.
+    otel_endpoint: str = ""
+    # Optional bearer token to protect /metrics.  Leave empty = open.
+    metrics_token: str = ""
 
     # ── Master provider keys (Prepatu-owned, used when user hasn't set their own) ──
     master_deepgram_key: str = ""

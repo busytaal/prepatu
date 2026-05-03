@@ -1,0 +1,29 @@
+# deploy/observability/prometheus.yml
+
+global:
+  scrape_interval:     15s
+  evaluation_interval: 15s
+  external_labels:
+    env: production
+    service: prepatu-cloud
+
+# No alertmanager configured here — add when you have alerts to route.
+
+scrape_configs:
+
+  # Cloud API — HTTP request metrics + custom voice/credit counters
+  - job_name: prepatu_cloud
+    static_configs:
+      - targets: ["cloud:4000"]   # service name in docker compose
+    metrics_path: /metrics
+    # If METRICS_TOKEN is set, provide it here:
+    # authorization:
+    #   credentials: <your-token>
+    relabel_configs:
+      - target_label: instance
+        replacement: prepatu-cloud-prod
+
+  # Prometheus self-monitoring
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]

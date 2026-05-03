@@ -11,7 +11,7 @@ import secrets
 import time
 import uuid
 
-import aiosqlite
+import asyncpg
 from fastapi import Depends, Header, HTTPException, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
@@ -56,64 +56,60 @@ def _decode_jwt(token: str) -> str:
 
 # ── Signup / Login ────────────────────────────────────────────────────────────
 
-async def signup(body: SignupRequest, db: aiosqlite.Connection) -> TokenResponse:
-    async with db.execute("SELECT id FROM users WHERE email = ?", (body.email,)) as cur:
-        if await cur.fetchone():
-            raise HTTPException(status_code=409, detail="Email already registered")
+async def signup(body: SignupRequest, db: asyncpg.Connection) -> TokenResponse:
+    row = await db.fetchrow("SELECT id FROM users WHERE email = $1", body.email)
+    if row:
+        raise HTTPException(status_code=409, detail="Email already registered")
 
     user_id = str(uuid.uuid4())
     now     = time.time()
     hashed  = _hash(body.password)
 
-    await db.execute(
-        "INSERT INTO users (id, email, hashed_pw, created_at) VALUES (?, ?, ?, ?)",
-        (user_id, body.email, hashed, now),
-    )
-    # Grant signup credits
-    await db.execute(
-        "INSERT INTO credits (user_id, balance_usd_cents) VALUES (?, ?)",
-        (user_id, settings.signup_credit_grant_usd_cents),
-    )
-    # Default (empty) provider key row
-    await db.execute(
-        "INSERT INTO provider_keys (user_id) VALUES (?)",
-        (user_id,),
-    )
-    await db.commit()
-    logger.info(f"[auth] New user signed up: {body.email}")
+    async with db.transaction():
+        await db.execute(
+            "INSERT INTO users (id, email, hashed_pw, created_at) VALUES ($1, $2, $3, $4)",
+            user_id, body.email, hashed, now,
+        )
+        await db.execute(
+            "INSERT INTO credits (user_id, balance_usd_cents) VALUES ($1, $2)",
+            user_id, settings.signup_credit_grant_usd_cents,
+        )
+        await db.execute(
+            "INSERT INTO provider_keys (user_id) VALUES ($1)",
+            user_id,
+        )
+
+    logger.info("[auth] New user signed up: {}", body.email)
     return TokenResponse(access_token=_make_jwt(user_id))
 
 
-async def login(body: LoginRequest, db: aiosqlite.Connection) -> TokenResponse:
-    async with db.execute(
-        "SELECT id, hashed_pw FROM users WHERE email = ?", (body.email,)
-    ) as cur:
-        row = await cur.fetchone()
-
+async def login(body: LoginRequest, db: asyncpg.Connection) -> TokenResponse:
+    row = await db.fetchrow(
+        "SELECT id, hashed_pw FROM users WHERE email = $1", body.email
+    )
     if not row or not _verify(body.password, row["hashed_pw"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
+    logger.info("[auth] Login: {}", body.email)
     return TokenResponse(access_token=_make_jwt(row["id"]))
 
 
 # ── API key management ────────────────────────────────────────────────────────
 
-async def create_api_key(user_id: str, label: str, db: aiosqlite.Connection) -> ApiKeyResponse:
+async def create_api_key(user_id: str, label: str, db: asyncpg.Connection) -> ApiKeyResponse:
     key = "pk_live_" + secrets.token_urlsafe(32)
     await db.execute(
-        "INSERT INTO api_keys (key, user_id, label, created_at) VALUES (?, ?, ?, ?)",
-        (key, user_id, label, time.time()),
+        "INSERT INTO api_keys (key, user_id, label, created_at) VALUES ($1, $2, $3, $4)",
+        key, user_id, label, time.time(),
     )
-    await db.commit()
     return ApiKeyResponse(key=key, label=label)
 
 
-async def resolve_api_key(key: str, db: aiosqlite.Connection) -> str:
+async def resolve_api_key(key: str, db: asyncpg.Connection) -> str:
     """Resolve an SDK API key to a user_id, or raise 401."""
-    async with db.execute(
-        "SELECT user_id FROM api_keys WHERE key = ? AND revoked = 0", (key,)
-    ) as cur:
-        row = await cur.fetchone()
+    row = await db.fetchrow(
+        "SELECT user_id FROM api_keys WHERE key = $1 AND revoked = 0", key
+    )
     if not row:
         raise HTTPException(status_code=401, detail="Invalid or revoked API key")
     return row["user_id"]
@@ -123,7 +119,7 @@ async def resolve_api_key(key: str, db: aiosqlite.Connection) -> str:
 
 async def current_user_jwt(
     creds: HTTPAuthorizationCredentials | None = Security(bearer),
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
 ) -> str:
     """Dependency: validates JWT, returns user_id."""
     if not creds:
@@ -133,24 +129,22 @@ async def current_user_jwt(
 
 async def current_user_api_key(
     creds: HTTPAuthorizationCredentials | None = Security(bearer),
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
 ) -> str:
-    """Dependency: validates SDK API key (X-Prepatu-Key header), returns user_id."""
+    """Dependency: validates SDK API key, returns user_id."""
     if not creds:
         raise HTTPException(status_code=401, detail="Missing API key")
-    # Support both Bearer <key> and raw key via X-Prepatu-Key (handled in middleware)
     return await resolve_api_key(creds.credentials, db)
 
 
 async def current_user_any(
     creds: HTTPAuthorizationCredentials | None = Security(bearer),
     x_prepatu_key: str | None = Header(default=None),
-    db: aiosqlite.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db),
 ) -> str:
     """Dependency: accepts either a JWT (dashboard) or SDK API key."""
     if creds:
         token = creds.credentials
-        # API keys always start with pk_live_
         if token.startswith("pk_live_"):
             return await resolve_api_key(token, db)
         return _decode_jwt(token)
@@ -159,24 +153,22 @@ async def current_user_any(
     raise HTTPException(status_code=401, detail="Authentication required")
 
 
-async def revoke_api_key(user_id: str, key: str, db: aiosqlite.Connection) -> None:
+async def revoke_api_key(user_id: str, key: str, db: asyncpg.Connection) -> None:
     """Mark an API key as revoked. Raises 404 if it doesn't belong to the user."""
-    async with db.execute(
-        "SELECT key FROM api_keys WHERE key = ? AND user_id = ?", (key, user_id)
-    ) as cur:
-        if not await cur.fetchone():
-            raise HTTPException(status_code=404, detail="Key not found")
-    await db.execute("UPDATE api_keys SET revoked = 1 WHERE key = ?", (key,))
-    await db.commit()
+    row = await db.fetchrow(
+        "SELECT key FROM api_keys WHERE key = $1 AND user_id = $2", key, user_id
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Key not found")
+    await db.execute("UPDATE api_keys SET revoked = 1 WHERE key = $1", key)
 
 
-async def list_api_keys(user_id: str, db: aiosqlite.Connection) -> list[dict]:
+async def list_api_keys(user_id: str, db: asyncpg.Connection) -> list[dict]:
     """Return all API keys for this user (key is partially masked)."""
-    async with db.execute(
-        "SELECT key, label, created_at, revoked FROM api_keys WHERE user_id = ? ORDER BY created_at DESC",
-        (user_id,),
-    ) as cur:
-        rows = await cur.fetchall()
+    rows = await db.fetch(
+        "SELECT key, label, created_at, revoked FROM api_keys WHERE user_id = $1 ORDER BY created_at DESC",
+        user_id,
+    )
     return [
         {
             "key_prefix": r["key"][:14] + "...",  # pk_live_XXXXXX...
@@ -187,3 +179,4 @@ async def list_api_keys(user_id: str, db: aiosqlite.Connection) -> list[dict]:
         }
         for r in rows
     ]
+
