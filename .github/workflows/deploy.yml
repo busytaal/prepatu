@@ -42,8 +42,8 @@ jobs:
             echo "==> Pulling latest cloud image"
             docker compose pull cloud
 
-            echo "==> Restarting cloud service (zero-downtime rolling)"
-            docker compose up -d --no-deps --wait cloud
+            echo "==> Restarting cloud service"
+            docker compose up -d --no-deps --force-recreate cloud
 
             echo "==> Pruning old images"
             docker image prune -f
