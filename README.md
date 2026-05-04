@@ -1,87 +1,89 @@
 # Prepatu
 
-**Define voice agents in YAML. The state machine runs the show. The LLM does the talking.**
+> **Define voice agents in YAML. The state machine runs the show. The LLM does the talking.**
+
+[![Docs](https://img.shields.io/badge/docs-docs.prepatu.com-4A90E2)](https://docs.prepatu.com)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![npm](https://img.shields.io/npm/v/@prepatu/sdk)](https://www.npmjs.com/package/@prepatu/sdk)
 
 Prepatu is an open-source engine for building reliable, multi-step voice applications. You describe your conversation as a YAML state machine — the engine confines the LLM to one state at a time, pushes UI artifacts to the client, and ensures the flow completes even if the model misbehaves.
 
 ---
 
-## The Problem
+## Why a state machine?
 
 LLMs are brilliant at understanding language. They're terrible at following a script.
 
 Ask an LLM to run a 5-step booking flow and it will skip steps, invent transitions, forget where it is, or hallucinate a confirmation the user never gave. Every team building voice agents hits the same wall: **the LLM cannot be trusted with flow control.**
 
-## The Solution
+Prepatu solves this by separating concerns:
 
-Separate what the LLM is good at (natural language understanding) from what it's bad at (deterministic state management). In Prepatu:
-
-- **A YAML state machine** defines the flow — states, transitions, tools, UI artifacts
-- **The LLM** operates *inside* each state — it converses naturally, extracts entities, calls tools
-- **The engine** enforces the rules — the LLM cannot skip steps, call tools from other states, or invent transitions
+- **YAML state machine** — defines the flow: states, transitions, tools, artifacts
+- **LLM** — operates *inside* each state: natural language, entity extraction, tool calls
+- **Engine** — enforces the rules: the LLM cannot skip states, call foreign tools, or invent transitions
 
 ```yaml
-# A complete voice flow in 25 lines
-id: greeting
-version: "1.0.0"
-initial_state: hello
-
-settings:
-  base_system_prompt: |
-    You are a friendly assistant. Keep every reply to one sentence.
+id: support-agent
+initial_state: greet
 
 states:
-  hello:
+  greet:
     agent:
-      prompt: Greet the user and ask their name. When they tell you, call `save_name`.
-      tools: [save_name]
-    tools:
-      save_name:
-        description: "Save the user's name"
-        parameters:
-          first_name: { type: string, required: true }
+      prompt: |
+        Welcome the user and ask how you can help today.
+        Call `collect_issue` once you understand their problem.
+      tools: [collect_issue]
     transitions:
       on_tool_call:
-        save_name: farewell     # ← The engine moves to 'farewell'. The LLM can't skip this.
+        collect_issue: resolve   # ← engine moves here, LLM can't skip it
 
-  farewell:
+  resolve:
     agent:
-      prompt: Say goodbye to {first_name} warmly.
-      tools: []
-    transitions: {}             # No transitions = conversation ends
+      prompt: Diagnose and solve {issue}. When done, call `close`.
+      tools: [close]
+    transitions:
+      on_tool_call:
+        close: end
 ```
 
-The LLM in `hello` can *only* call `save_name`. It literally cannot advance the flow any other way. When it does, the engine stores `first_name`, transitions to `farewell`, injects the new prompt (with `{first_name}` interpolated), and the LLM speaks again — all deterministic.
+→ [State machine deep-dive](https://docs.prepatu.com/docs/flows/state-machine) · [YAML reference](https://docs.prepatu.com/docs/flows/yaml-reference) · [Variables & interpolation](https://docs.prepatu.com/docs/flows/variables)
 
 ---
 
-## Three Ways to Use Prepatu
+## Three ways to use Prepatu
 
-### ☁️ Cloud Service
+### ☁️ Managed Cloud — zero infra
 
-Sign up, upload your YAML flow, connect from any frontend. No backend needed.
+Sign up at [prepatu.com](https://prepatu.com/ui), upload your flow, connect from any frontend.
 
 ```bash
-# 1. Get an API key from the dashboard
-# 2. Upload your flow
-curl -X POST https://api.prepatu.io/v1/flows \
-  -H "X-Prepatu-Key: pk_..." \
-  -d '{"name": "My Flow", "yaml_content": "..."}'
+# Upload a flow
+curl -X POST https://api.prepatu.com/v1/flows \
+  -H "X-Prepatu-Key: pk_live_..." \
+  -F "name=support-agent" \
+  -F "yaml_content=<flow.yaml"
 
-# 3. Start a session
-curl -X POST https://api.prepatu.io/v1/sessions \
-  -H "X-Prepatu-Key: pk_..." \
-  -d '{"flow_id": "..."}'
-# → { "ws_url": "wss://api.prepatu.io/v1/ws/...", "session_token": "..." }
-
-# 4. Connect from the browser using VoiceAgent
+# Start a session → get a WebSocket URL back
+curl -X POST https://api.prepatu.com/v1/sessions \
+  -H "X-Prepatu-Key: pk_live_..." \
+  -d '{"flow_id": "flw_..."}'
 ```
 
-→ [Cloud Quickstart](https://busytaal.github.io/prepatu/docs/getting-started/cloud-quickstart)
+Connect from the browser in one line:
 
-### 📦 `pip install vfdl`
+```ts
+import { Prepatu } from '@prepatu/sdk';
 
-Use the flow engine in your own Python/FastAPI backend:
+const agent = await Prepatu.createAgent({ apiKey: 'pk_live_...', flowId: 'flw_...' });
+agent.on('audio', buf => /* play it */);
+await agent.connect();
+```
+
+→ [Cloud quickstart](https://docs.prepatu.com/docs/getting-started/cloud-quickstart) · [Cloud API reference](https://docs.prepatu.com/docs/reference/cloud-api) · [Credit & QoS](https://docs.prepatu.com/docs/reference/qos)
+
+---
+
+### 📦 Self-hosted — your infra, your keys
 
 ```bash
 pip install vfdl
@@ -89,63 +91,129 @@ pip install vfdl
 
 ```python
 from vfdl.agents.flow_engine import load_flow
-flow = load_flow("./my_flow.yaml")  # validates and returns a FlowConfig
+
+flow = load_flow("./flow.yaml")   # validates, returns FlowConfig
 ```
 
-→ [Self-Hosted Quickstart](https://busytaal.github.io/prepatu/docs/getting-started/self-hosted-quickstart)
-
-### 🍴 Fork the Monorepo
-
-Clone the repo for a full starter kit with reference apps, browser SDK, and cloud service:
+Or run the full cloud service yourself:
 
 ```bash
 git clone https://github.com/busytaal/prepatu.git
-cd prepatu && uv sync --all-packages
+cd prepatu
+uv sync --all-packages
+uv run uvicorn services.cloud.main:app --port 4000
+```
+
+→ [Self-hosted quickstart](https://docs.prepatu.com/docs/getting-started/self-hosted-quickstart) · [Deployment guide](https://docs.prepatu.com/docs/reference/deployment) · [Environment variables](https://docs.prepatu.com/docs/reference/env-variables) · [Self-hosted API](https://docs.prepatu.com/docs/reference/self-hosted-api)
+
+---
+
+### 🧩 JavaScript / TypeScript SDK
+
+```bash
+npm install @prepatu/sdk
+```
+
+```ts
+import { Prepatu } from '@prepatu/sdk';
+
+// Managed cloud
+const agent = await Prepatu.createAgent({ apiKey: 'pk_live_...', flowId: 'flw_...' });
+
+// Self-hosted
+const agent = await Prepatu.createAgent({ backendUrl: 'wss://your-server/ws' });
+
+agent.on('message', msg => console.log(msg));
+agent.on('status',  s   => console.log(s));
+await agent.connect();
+```
+
+→ [SDK — connecting](https://docs.prepatu.com/docs/sdk/connecting) · [Sending events](https://docs.prepatu.com/docs/sdk/sending-events) · [Handling artifacts](https://docs.prepatu.com/docs/sdk/handling-artifacts) · [Full API reference](https://docs.prepatu.com/docs/sdk/voice-agent-reference)
+
+---
+
+## Example apps
+
+| App | What it shows | Source |
+|---|---|---|
+| **10 Questions** | Voice game — AI picks a secret, you ask yes/no questions | [apps/ten-questions/](apps/ten-questions/) |
+| **Booking Wizard** | 3-step appointment booking with voice-to-form autofill | [apps/demo-wizard/](apps/demo-wizard/) |
+| **IELTS Coach** | Full mobile + web app — multi-flow language practice with scoring | [apps/ielts/](apps/ielts/) |
+
+→ [10 Questions walkthrough](https://docs.prepatu.com/docs/examples/ten-questions) · [Booking Wizard walkthrough](https://docs.prepatu.com/docs/examples/booking-wizard) · [IELTS Coach walkthrough](https://docs.prepatu.com/docs/examples/ielts-coach)
+
+---
+
+## Flows — what you can do in YAML
+
+| Feature | Docs |
+|---|---|
+| States, transitions, tool calls | [First flow](https://docs.prepatu.com/docs/flows/first-flow) |
+| Variables & prompt interpolation | [Variables](https://docs.prepatu.com/docs/flows/variables) |
+| Push UI cards, forms, images to the browser | [Artifacts](https://docs.prepatu.com/docs/flows/artifacts) |
+| Human-in-the-loop confirmation gates | [Confirmation gates](https://docs.prepatu.com/docs/flows/confirmation-gates) |
+| Full YAML field reference | [YAML reference](https://docs.prepatu.com/docs/flows/yaml-reference) |
+
+---
+
+## Architecture & internals
+
+| Topic | Docs |
+|---|---|
+| How the engine works end-to-end | [Architecture](https://docs.prepatu.com/docs/reference/architecture) |
+| Audio pipeline (STT → LLM → TTS) | [Pipeline](https://docs.prepatu.com/docs/reference/pipeline) |
+| Swapping STT / LLM / TTS providers | [Providers](https://docs.prepatu.com/docs/reference/providers) |
+| WebSocket wire protocol | [Wire protocol](https://docs.prepatu.com/docs/reference/wire-protocol) |
+| Transport options (WebSocket / WebRTC) | [Transports](https://docs.prepatu.com/docs/reference/transports) |
+| Flow engine internals | [Flow engine](https://docs.prepatu.com/docs/reference/flow-engine) |
+
+---
+
+## Repo layout
+
+```
+packages/
+  sdk/          — @prepatu/sdk (TypeScript, CJS + ESM)
+  vfdl/         — Python flow engine (pip install vfdl)
+services/
+  cloud/        — Managed cloud service (FastAPI, SQLite, JWT, credits)
+apps/
+  ten-questions/  — Voice game demo
+  demo-wizard/    — Booking wizard demo
+  ielts/          — Full IELTS coaching app (backend + frontend + mobile)
+deploy/         — Docker Compose + observability stack (Prometheus, Loki, Grafana)
+docs/prepatu/   — Docusaurus docs (deployed to docs.prepatu.com)
 ```
 
 ---
 
-## Example Apps
+## Dev setup
 
-| App | What it demonstrates | Flow |
-|---|---|---|
-| **10 Questions** | Voice game — AI picks a secret, user asks yes/no questions | [flow.yaml](apps/ten-questions/flow.yaml) |
-| **Booking Wizard** | 3-step appointment booking with voice-to-form autofill | [flow.yaml](apps/demo-wizard/flow.yaml) |
-| **IELTS Coach** | Multi-flow language practice app with scoring | [apps/ielts/](apps/ielts/) |
+```bash
+git clone https://github.com/busytaal/prepatu.git
+cd prepatu
 
----
+# Python (engine + cloud service)
+uv sync --all-packages
+uv run pytest
 
-## Stack
+# SDK
+cd packages/sdk && npm install && npm run build
 
-| Layer | Tech |
-|---|---|
-| **VFDL Engine** | Python 3.12 · Pipecat · FastAPI |
-| **Browser SDK** | TypeScript · WebSocket + WebRTC |
-| **Cloud Service** | FastAPI · SQLite · JWT auth · credit-based billing |
-
----
-
-## Documentation
-
-- **[Introduction](https://busytaal.github.io/prepatu/)** — what Prepatu is and how it works
-- **[Cloud Quickstart](https://busytaal.github.io/prepatu/docs/getting-started/cloud-quickstart)** — running in 5 minutes
-- **[Writing Flows](https://busytaal.github.io/prepatu/docs/flows/first-flow)** — YAML reference and tutorials
-- **[Examples](https://busytaal.github.io/prepatu/docs/examples/ten-questions)** — build a 10 Questions game step by step
-- **[API Reference](https://busytaal.github.io/prepatu/docs/reference/cloud-api)** — cloud and self-hosted API docs
+# Run the cloud service locally
+uv run uvicorn services.cloud.main:app --reload --port 4000
+```
 
 ---
 
 ## Contributing
 
+Open an issue before submitting a large PR so the approach can be agreed on first.
+
 ```bash
-# Run tests
-uv run pytest
-
-# Frontend type-check
-cd packages/sdk && npx tsc --noEmit
+uv run pytest                        # full test suite
+cd packages/sdk && npx tsc --noEmit  # TypeScript check
 ```
-
-Please open an issue before submitting a large PR so the approach can be agreed on first.
 
 ## License
 
