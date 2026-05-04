@@ -62,9 +62,8 @@ services:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
     networks:
       - observability
-    # No ports exposed — use SSH tunnel to access
-    expose:
-      - "3000"
+    ports:
+      - "127.0.0.1:3000:3000"  # localhost only — use SSH tunnel for remote access
 
 volumes:
   prometheus_data:

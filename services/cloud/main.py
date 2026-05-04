@@ -164,6 +164,15 @@ async def metrics(request: Request):
     )
 
 
+# ── Root redirect ────────────────────────────────────────────────────────────
+
+@app.get("/", include_in_schema=False)
+async def _root():
+    """Redirect browsers to the UI at /ui (relative — works on any host)."""
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/ui", status_code=307)
+
+
 # ── Routers ───────────────────────────────────────────────────────────────────
 
 app.include_router(engine_router)   # /health, /ice-servers

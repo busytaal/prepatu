@@ -69,3 +69,4 @@ networks:
   internal:
   external:
     name: prepatu-external
+    external: true
