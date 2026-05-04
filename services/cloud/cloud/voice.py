@@ -106,7 +106,15 @@ async def handle_voice_ws(ws: WebSocket, session_token: str, db: asyncpg.Connect
     keys_row = await db.fetchrow(
         "SELECT * FROM provider_keys WHERE user_id = $1", user_id
     )
-    provider_overrides = _build_provider_overrides(keys_row) if keys_row else {}
+    if keys_row:
+        provider_overrides = _build_provider_overrides(keys_row)
+    else:
+        # No custom keys — use master keys directly
+        provider_overrides = {
+            "stt_api_key": _master_key("deepgram"),
+            "tts_api_key": _master_key("cartesia"),
+            "llm_api_key": _master_key("openrouter"),
+        }
 
     # ── 3. Load flow (from DB if flow_id set, else generic default) ───────────
     flow_config: FlowConfig | None = None
