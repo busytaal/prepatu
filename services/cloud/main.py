@@ -168,9 +168,11 @@ async def metrics(request: Request):
 
 @app.get("/", include_in_schema=False)
 async def _root():
-    """Redirect browsers to the UI at /ui (relative — works on any host)."""
-    from fastapi.responses import RedirectResponse
-    return RedirectResponse(url="/ui", status_code=307)
+    """Serve the marketing landing page at the site root."""
+    from fastapi.responses import FileResponse
+    import pathlib
+    landing = pathlib.Path(__file__).parent / "dashboard" / "landing.html"
+    return FileResponse(landing, media_type="text/html")
 
 
 # ── Routers ───────────────────────────────────────────────────────────────────

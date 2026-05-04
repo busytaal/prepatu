@@ -133,3 +133,35 @@ jobs:
 
             echo "==> Deploy complete"
             docker compose ps cloud
+
+  # ── Deploy docs to Cloudflare Pages ─────────────────────────────────────────
+  deploy-docs:
+    name: Deploy Docs to Cloudflare Pages
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: docs/prepatu/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: docs/prepatu
+
+      - name: Build docs
+        run: npm run build
+        working-directory: docs/prepatu
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy build --project-name=prepatu-docs
+          workingDirectory: docs/prepatu

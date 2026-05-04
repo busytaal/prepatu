@@ -11,8 +11,8 @@ const config: Config = {
     v4: true,
   },
 
-  url: 'https://busytaal.github.io',
-  baseUrl: '/prepatu/',
+  url: 'https://docs.prepatu.com',
+  baseUrl: '/',
 
   organizationName: 'busytaal',
   projectName: 'prepatu',
@@ -58,6 +58,11 @@ const config: Config = {
           sidebarId: 'tutorialSidebar',
           position: 'left',
           label: 'Docs',
+        },
+        {
+          href: 'https://prepatu.com/ui',
+          label: 'Dashboard',
+          position: 'right',
         },
         {
           href: 'https://github.com/busytaal/prepatu',

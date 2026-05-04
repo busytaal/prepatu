@@ -28,8 +28,8 @@ function HomepageHeader() {
           <Link className={clsx('button button--lg', styles.btnPrimary)} to="/docs/">
             Get Started
           </Link>
-          <Link className={clsx('button button--lg', styles.btnSecondary)} href="https://github.com/busytaal/prepatu">
-            GitHub
+          <Link className={clsx('button button--lg', styles.btnSecondary)} href="https://prepatu.com/ui">
+            Dashboard →
           </Link>
         </div>
       </div>

@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prepatu — Build Voice Agents with YAML</title>
+  <meta name="description" content="Build reliable, production-ready voice agents from a YAML flow definition. Managed cloud or self-hosted." />
+  <meta property="og:title" content="Prepatu — Build Voice Agents with YAML" />
+  <meta property="og:description" content="Build reliable, production-ready voice agents from a YAML flow definition." />
+  <meta property="og:url" content="https://prepatu.com" />
+  <style>
+    :root {
+      --bg:          #0A0A14;
+      --surface:     #12121E;
+      --elevated:    #1A1A28;
+      --card:        #1E1E30;
+      --border:      #2E2E44;
+      --primary:     #4A90E2;
+      --primary-dim: #2d5f9e;
+      --green:       #3ECF6A;
+      --text:        #E8E8F0;
+      --text-muted:  #6B6B80;
+      --radius:      8px;
+      --radius-lg:   16px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    /* ── Nav ─────────────────────────────────────────────────────────────── */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 48px;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: rgba(10,10,20,0.85);
+      backdrop-filter: blur(12px);
+      z-index: 10;
+    }
+
+    .nav-logo {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      padding: 8px 14px;
+      border-radius: var(--radius);
+      transition: color 0.15s, background 0.15s;
+    }
+
+    .nav-link:hover { color: var(--text); background: var(--elevated); }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 8px 18px;
+      border-radius: var(--radius);
+      text-decoration: none;
+      transition: all 0.15s;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+    .btn-primary:hover { background: #5a9fe8; }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+
+    /* ── Hero ────────────────────────────────────────────────────────────── */
+    .hero {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 96px 24px 80px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--elevated);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 4px 14px;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 28px;
+    }
+
+    .hero-badge span { color: var(--green); font-weight: 600; }
+
+    h1 {
+      font-size: clamp(2.2rem, 5vw, 3.4rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 20px;
+    }
+
+    h1 em {
+      font-style: normal;
+      color: var(--primary);
+    }
+
+    .hero-sub {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      max-width: 560px;
+      margin: 0 auto 40px;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .hero-actions .btn { font-size: 15px; padding: 12px 24px; }
+
+    /* ── Code preview ────────────────────────────────────────────────────── */
+    .code-wrap {
+      max-width: 680px;
+      margin: 64px auto 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      text-align: left;
+    }
+
+    .code-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--elevated);
+    }
+
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot-red   { background: #E24A6A; }
+    .dot-amber { background: #E8A020; }
+    .dot-green { background: #3ECF6A; }
+
+    .code-filename { font-size: 12px; color: var(--text-muted); margin-left: 4px; }
+
+    pre {
+      padding: 24px;
+      font-size: 13px;
+      line-height: 1.7;
+      overflow-x: auto;
+      font-family: 'Fira Code', 'JetBrains Mono', 'Cascadia Code', monospace;
+    }
+
+    .c-comment { color: #5a6680; }
+    .c-key     { color: #79b8ff; }
+    .c-string  { color: #9ecbff; }
+    .c-value   { color: #85e89d; }
+    .c-punct   { color: #6B6B80; }
+
+    /* ── Features ────────────────────────────────────────────────────────── */
+    .features {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 80px 24px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      transition: border-color 0.2s;
+    }
+
+    .feature-card:hover { border-color: var(--primary-dim); }
+
+    .feature-icon {
+      font-size: 24px;
+      margin-bottom: 14px;
+    }
+
+    .feature-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .feature-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* ── CTA ─────────────────────────────────────────────────────────────── */
+    .cta {
+      text-align: center;
+      padding: 80px 24px;
+      border-top: 1px solid var(--border);
+    }
+
+    .cta h2 {
+      font-size: clamp(1.6rem, 3vw, 2.2rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+    }
+
+    .cta p {
+      color: var(--text-muted);
+      font-size: 15px;
+      margin-bottom: 32px;
+    }
+
+    .cta .btn { font-size: 15px; padding: 12px 28px; }
+
+    /* ── Footer ──────────────────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 24px 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    footer a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 13px;
+      transition: color 0.15s;
+    }
+
+    footer a:hover { color: var(--text); }
+
+    .footer-links { display: flex; gap: 20px; }
+
+    @media (max-width: 600px) {
+      nav { padding: 16px 20px; }
+      .nav-link { display: none; }
+      footer { padding: 20px; flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Nav -->
+  <nav>
+    <a href="/" class="nav-logo">prepatu</a>
+    <div class="nav-links">
+      <a href="https://docs.prepatu.com" class="nav-link">Docs</a>
+      <a href="https://github.com/busytaal/prepatu" class="nav-link">GitHub</a>
+      <a href="/ui" class="btn btn-outline">Sign in</a>
+      <a href="/ui" class="btn btn-primary">Get started free</a>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-badge">
+      <span>●</span> Open source · Self-host or managed cloud
+    </div>
+
+    <h1>Build voice agents<br>with <em>plain YAML</em></h1>
+
+    <p class="hero-sub">
+      Define your conversation flow as a state machine. Prepatu handles STT, LLM, TTS,
+      WebSocket transport, and credit billing — you write the logic.
+    </p>
+
+    <div class="hero-actions">
+      <a href="/ui" class="btn btn-primary">Start building →</a>
+      <a href="https://docs.prepatu.com" class="btn btn-outline">Read the docs</a>
+    </div>
+
+    <!-- Code preview -->
+    <div class="code-wrap">
+      <div class="code-header">
+        <div class="dot dot-red"></div>
+        <div class="dot dot-amber"></div>
+        <div class="dot dot-green"></div>
+        <span class="code-filename">flow.yaml</span>
+      </div>
+      <pre><span class="c-key">id</span><span class="c-punct">:</span> <span class="c-value">support-agent</span>
+<span class="c-key">initial_state</span><span class="c-punct">:</span> <span class="c-value">greet</span>
+
+<span class="c-key">states</span><span class="c-punct">:</span>
+  <span class="c-key">greet</span><span class="c-punct">:</span>
+    <span class="c-key">agent</span><span class="c-punct">:</span>
+      <span class="c-key">prompt</span><span class="c-punct">:</span> <span class="c-string">|
+        Welcome the user and ask how you can help today.
+        Call `collect_issue` once you understand their problem.</span>
+      <span class="c-key">tools</span><span class="c-punct">:</span> <span class="c-punct">[</span><span class="c-value">collect_issue</span><span class="c-punct">]</span>
+    <span class="c-key">transitions</span><span class="c-punct">:</span>
+      <span class="c-key">on_tool_call</span><span class="c-punct">:</span>
+        <span class="c-key">collect_issue</span><span class="c-punct">:</span> <span class="c-value">resolve</span>
+
+  <span class="c-key">resolve</span><span class="c-punct">:</span>
+    <span class="c-comment">  # ... next state</span></pre>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="features">
+    <div class="feature-card">
+      <div class="feature-icon">🗂️</div>
+      <div class="feature-title">YAML state machine</div>
+      <div class="feature-desc">Define states, transitions, and tool calls in a readable YAML file. No Python required to build a flow.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔌</div>
+      <div class="feature-title">Provider-agnostic</div>
+      <div class="feature-desc">Swap STT, LLM, and TTS providers per-account. Deepgram, OpenAI, Cartesia, ElevenLabs — all supported out of the box.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">☁️</div>
+      <div class="feature-title">Managed or self-hosted</div>
+      <div class="feature-desc">Use the Prepatu cloud for zero-ops deployment, or run the open-source engine on your own infrastructure.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⚡</div>
+      <div class="feature-title">JavaScript SDK</div>
+      <div class="feature-desc">One-liner browser integration. Connect a voice agent to any web page with <code>Prepatu.createAgent()</code>.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <div class="feature-title">Usage & credits</div>
+      <div class="feature-desc">Per-session credit billing. Monitor usage, set caps, and see breakdowns by origin and flow.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔒</div>
+      <div class="feature-title">Secure by default</div>
+      <div class="feature-desc">Proxy endpoints keep your keys server-side. Origin restrictions and rate limits prevent abuse.</div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta">
+    <h2>Ready to build?</h2>
+    <p>Create a free account and deploy your first voice agent in minutes.</p>
+    <a href="/ui" class="btn btn-primary">Create free account →</a>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <span style="color: var(--text-muted); font-size: 13px;">© 2026 Prepatu</span>
+    <div class="footer-links">
+      <a href="https://docs.prepatu.com">Docs</a>
+      <a href="https://github.com/busytaal/prepatu">GitHub</a>
+      <a href="/ui">Dashboard</a>
+    </div>
+  </footer>
+
+</body>
+</html>

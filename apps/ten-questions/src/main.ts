@@ -61,7 +61,7 @@ connectBtn.addEventListener('click', async () => {
     agent = await Prepatu.createAgent({
       apiKey,
       flowId,
-      cloudApiUrl: cloudUrl || 'http://localhost:4000',
+      cloudApiUrl: cloudUrl || 'https://api.prepatu.com',
     });
 
     agent.on('status',  (s) => { dbg('status', s, 'info'); handleStatus(s); });

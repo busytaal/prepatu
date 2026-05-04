@@ -8,6 +8,9 @@
     "build": "tsc && vite build",
     "preview": "vite preview"
   },
+  "dependencies": {
+    "@prepatu/sdk": "^0.1.0"
+  },
   "devDependencies": {
     "@types/node": "^20.14.1",
     "typescript": "~5.6.0",

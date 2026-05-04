@@ -3,21 +3,36 @@
   "version": "0.1.0",
   "description": "Prepatu Voice SDK — managed and self-hosted voice flows",
   "main": "dist/index.js",
-  "module": "dist/index.esm.js",
+  "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.esm.js",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types":   "./dist/index.d.ts",
+      "import":  "./dist/index.mjs",
+      "require": "./dist/index.js"
     }
   },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch"
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "prepublishOnly": "npm run build"
   },
   "devDependencies": {
+    "tsup": "^8.0.0",
     "typescript": "~5.6.0"
   },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/busytaal/prepatu"
+  },
+  "homepage": "https://prepatu.com",
+  "keywords": ["voice", "ai", "agent", "webrtc", "websocket", "prepatu"],
   "license": "MIT"
 }

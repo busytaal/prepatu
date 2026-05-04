@@ -4,7 +4,7 @@
 // All SDK-managed sessions go through here to resolve the backend URL,
 // validate the API key, and report usage.
 
-export const DEFAULT_CLOUD_API = 'https://api.prepatu.io';
+export const DEFAULT_CLOUD_API = 'https://api.prepatu.com';
 
 export interface SessionStartResponse {
   /** Temporary session token to pass to the managed backend */

@@ -1,0 +1,4 @@
+# Cloudflare Pages – SPA-style fallback is handled by Docusaurus's own 404.html
+# This file intentionally left minimal.
+# Add redirect rules here as needed, e.g.:
+# /old-path  /new-path  301
