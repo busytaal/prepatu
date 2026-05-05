@@ -11,17 +11,20 @@ Authentication:
 from __future__ import annotations
 
 import asyncpg
-from fastapi import APIRouter, Depends, Header, HTTPException, WebSocket
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, WebSocket
 
-from cloud import auth, credits, flows, providers, usage
+from cloud import auth, credits, flows, oauth, payments, providers, usage
 from cloud.auth import current_user_any, current_user_jwt, list_api_keys, resolve_api_key, revoke_api_key
 from cloud.models import (
     ApiKeyResponse,
     CreditBalance,
+    CreditPackage,
     FlowCreate,
     FlowDetail,
     FlowSummary,
     LoginRequest,
+    OtpRequestBody,
+    OtpVerifyBody,
     ProviderKeys,
     ProviderKeysUpdate,
     SessionRecord,
@@ -72,6 +75,42 @@ async def revoke_key(
     db: asyncpg.Connection = Depends(get_db),
 ):
     await revoke_api_key(user_id, key_id, db)
+
+
+# ── OAuth social login (public) ───────────────────────────────────────────────
+
+@router.get("/auth/oauth/{provider}", tags=["auth"])
+async def oauth_start(provider: str):
+    return oauth.build_redirect(provider)
+
+
+@router.get("/auth/oauth/{provider}/callback", tags=["auth"])
+async def oauth_callback(
+    provider: str,
+    code: str = "",
+    state: str = "",
+    db: asyncpg.Connection = Depends(get_db),
+):
+    return await oauth.handle_callback(provider, code, state, db)
+
+
+# ── Email verification (public) ───────────────────────────────────────────────
+
+@router.get("/auth/verify-email", tags=["auth"])
+async def verify_email(token: str, db: asyncpg.Connection = Depends(get_db)):
+    return await auth.verify_email(token, db)
+
+
+# ── OTP login (public) ────────────────────────────────────────────────────────
+
+@router.post("/auth/otp/request", tags=["auth"])
+async def otp_request(body: OtpRequestBody, db: asyncpg.Connection = Depends(get_db)):
+    return await auth.otp_request(body, db)
+
+
+@router.post("/auth/otp/verify", response_model=TokenResponse, tags=["auth"])
+async def otp_verify(body: OtpVerifyBody, db: asyncpg.Connection = Depends(get_db)):
+    return await auth.otp_verify(body, db)
 
 
 # ── API key dependency ────────────────────────────────────────────────────────
@@ -177,6 +216,50 @@ async def get_balance(
     db: asyncpg.Connection = Depends(get_db),
 ):
     return await credits.get_balance(user_id, db)
+
+
+@router.get("/v1/credits/packages", response_model=list[CreditPackage], tags=["credits"])
+async def get_credit_packages():
+    return payments.list_packages()
+
+
+@router.get("/v1/config/checkout", tags=["credits"])
+async def checkout_config():
+    """Returns Freemius product config + per-package plan IDs for the dashboard checkout UI."""
+    import hashlib, time
+    from cloud.config import settings
+
+    sandbox = None
+    if settings.freemius_sandbox:
+        ts = str(int(time.time()))
+        token = hashlib.md5(
+            (ts + settings.freemius_plugin_id + settings.freemius_secret_key + settings.freemius_public_key + "checkout").encode()
+        ).hexdigest()
+        sandbox = {"token": token, "ctx": ts}
+
+    return {
+        "freemius_plugin_id": settings.freemius_plugin_id,
+        "freemius_public_key": settings.freemius_public_key,
+        "freemius_sandbox": settings.freemius_sandbox,
+        "freemius_sandbox_params": sandbox,
+        "plans": {
+            "starter":  settings.freemius_plan_starter,
+            "standard": settings.freemius_plan_standard,
+            "pro":      settings.freemius_plan_pro,
+        },
+    }
+
+
+# ── Payment webhooks (public — signature verified inside) ─────────────────────
+
+@router.post("/webhooks/paddle", tags=["payments"])
+async def paddle_webhook(request: Request, db: asyncpg.Connection = Depends(get_db)):
+    return await payments.paddle_webhook(request, db)
+
+
+@router.post("/webhooks/freemius", tags=["payments"])
+async def freemius_webhook(request: Request, db: asyncpg.Connection = Depends(get_db)):
+    return await payments.freemius_webhook(request, db)
 
 
 @router.get("/v1/sessions", response_model=list[SessionRecord], tags=["sessions"])

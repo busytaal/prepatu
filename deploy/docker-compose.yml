@@ -6,11 +6,23 @@
 #   docker compose up -d
 #
 # Required env vars (set in /opt/prepatu/deploy/.env or via host environment):
-#   POSTGRES_PASSWORD   — strong random password for the DB
-#   JWT_SECRET          — random 64-byte hex string
-#   METRICS_TOKEN       — bearer token for /metrics scraping (optional)
-#   GHCR_IMAGE          — e.g. ghcr.io/busytaal/prepatu-cloud:latest
-#   PUBLIC_BASE_URL     — wss://api.yourdomain.com
+#   POSTGRES_PASSWORD       — strong random password for the DB
+#   JWT_SECRET              — random 64-byte hex string
+#   GHCR_IMAGE              — e.g. ghcr.io/busytaal/prepatu-cloud:latest
+#   PUBLIC_BASE_URL         — wss://api.prepatu.com
+#   FRONTEND_URL            — https://prepatu.com
+#   METRICS_TOKEN           — bearer token for /metrics scraping (optional)
+#
+#   SMTP_USER               — e.g. noreply@busytaal.com
+#   SMTP_PASSWORD           — Zoho app password
+#
+#   GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET
+#   GITHUB_CLIENT_ID  / GITHUB_CLIENT_SECRET
+#
+#   FREEMIUS_SECRET_KEY / FREEMIUS_PUBLIC_KEY
+#   FREEMIUS_PLUGIN_ID
+#   FREEMIUS_PLAN_STARTER / FREEMIUS_PLAN_STANDARD / FREEMIUS_PLAN_PRO
+#
 #   MASTER_DEEPGRAM_KEY, MASTER_OPENROUTER_KEY, etc.
 
 services:
@@ -51,6 +63,30 @@ services:
       MASTER_CARTESIA_KEY:    ${MASTER_CARTESIA_KEY:-}
       MASTER_OPENAI_KEY:      ${MASTER_OPENAI_KEY:-}
       MASTER_ELEVENLABS_KEY:  ${MASTER_ELEVENLABS_KEY:-}
+      # Email (Zoho SMTP)
+      SMTP_HOST:              ${SMTP_HOST:-smtp.zoho.com}
+      SMTP_PORT:              ${SMTP_PORT:-587}
+      SMTP_USER:              ${SMTP_USER:-}
+      SMTP_PASSWORD:          ${SMTP_PASSWORD:-}
+      EMAIL_FROM:             ${EMAIL_FROM:-Prepatu <noreply@busytaal.com>}
+      EMAIL_REQUIRE_VERIFICATION: ${EMAIL_REQUIRE_VERIFICATION:-true}
+      # OAuth
+      GOOGLE_CLIENT_ID:       ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET:   ${GOOGLE_CLIENT_SECRET:-}
+      GITHUB_CLIENT_ID:       ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET:   ${GITHUB_CLIENT_SECRET:-}
+      # Frontend / redirect
+      FRONTEND_URL:           ${FRONTEND_URL:-https://prepatu.com}
+      # Freemius
+      FREEMIUS_SECRET_KEY:    ${FREEMIUS_SECRET_KEY:-}
+      FREEMIUS_PUBLIC_KEY:    ${FREEMIUS_PUBLIC_KEY:-}
+      FREEMIUS_PLUGIN_ID:     ${FREEMIUS_PLUGIN_ID:-}
+      FREEMIUS_PLAN_STARTER:  ${FREEMIUS_PLAN_STARTER:-}
+      FREEMIUS_PLAN_STANDARD: ${FREEMIUS_PLAN_STANDARD:-}
+      FREEMIUS_PLAN_PRO:      ${FREEMIUS_PLAN_PRO:-}
+      # Paddle (add when verified)
+      PADDLE_WEBHOOK_SECRET:  ${PADDLE_WEBHOOK_SECRET:-}
+      PADDLE_ENVIRONMENT:     ${PADDLE_ENVIRONMENT:-sandbox}
     ports:
       - "4000:4000"
     networks:

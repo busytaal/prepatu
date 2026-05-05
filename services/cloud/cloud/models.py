@@ -78,6 +78,27 @@ class CreditBalance(BaseModel):
     rate_per_minute_usd_cents: int
 
 
+# ── OTP ───────────────────────────────────────────────────────────────────────
+
+class OtpRequestBody(BaseModel):
+    email: EmailStr
+
+
+class OtpVerifyBody(BaseModel):
+    email: EmailStr
+    code: str
+
+
+# ── Credit packages ───────────────────────────────────────────────────────────
+
+class CreditPackage(BaseModel):
+    id: str
+    name: str
+    price_usd: float
+    credits: int            # USD cents credited to account
+    description: str
+
+
 # ── Provider keys ─────────────────────────────────────────────────────────────
 
 class ProviderKeys(BaseModel):

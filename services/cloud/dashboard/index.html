@@ -78,7 +78,116 @@
 
     .auth-tab.active { color: var(--text); border-bottom-color: var(--primary); }
 
-    /* ── App layout ─────────────────────────────────────────────────────── */
+    /* ── Social login ───────────────────────────────────────────────────── */
+
+    .social-divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--text-muted);
+      font-size: 12px;
+      margin: 20px 0;
+    }
+
+    .social-divider::before, .social-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .social-btns { display: flex; flex-direction: column; gap: 10px; margin-bottom: 4px; }
+
+    .btn-social {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      background: var(--elevated);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 18px;
+      font-weight: 500;
+      font-size: 14px;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .btn-social:hover { border-color: var(--primary); background: var(--surface); }
+
+    .btn-social svg { flex-shrink: 0; }
+
+    /* ── OTP form ───────────────────────────────────────────────────────── */
+
+    .otp-step { display: block; }
+    .otp-step[hidden] { display: none; }
+
+    .otp-code-inputs { display: flex; gap: 8px; justify-content: center; margin: 12px 0; }
+
+    .otp-digit {
+      width: 42px;
+      height: 52px;
+      text-align: center;
+      font-size: 22px;
+      font-weight: 600;
+      background: var(--elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      outline: none;
+      font-family: 'SF Mono', monospace;
+    }
+
+    .otp-digit:focus { border-color: var(--primary); }
+
+    .otp-resend { font-size: 12px; color: var(--text-muted); text-align: center; margin-top: 10px; }
+    .otp-resend button { background: none; border: none; color: var(--primary); font-size: 12px; cursor: pointer; text-decoration: underline; }
+
+    /* ── Credit package cards ───────────────────────────────────────────── */
+
+    .packages-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    @media (max-width: 600px) { .packages-grid { grid-template-columns: 1fr; } }
+
+    .pkg-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      text-align: center;
+      position: relative;
+      transition: border-color 0.15s;
+    }
+
+    .pkg-card:hover { border-color: var(--primary); }
+    .pkg-card.popular { border-color: var(--primary); }
+    .pkg-popular-badge {
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--primary);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 2px 10px;
+      border-radius: 999px;
+    }
+
+    .pkg-name { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .pkg-price { font-size: 28px; font-weight: 700; color: var(--primary); }
+    .pkg-price-sub { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
+    .pkg-credits { font-size: 13px; color: var(--green); margin-bottom: 6px; font-weight: 500; }
+    .pkg-desc { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; }
+
+
 
     .topbar {
       display: flex;
@@ -362,9 +471,31 @@
       <span class="brand-sub">Cloud Dashboard</span>
     </div>
 
+    <!-- Social login buttons (shown on all tabs) -->
+    <div class="social-btns">
+      <button class="btn-social" onclick="socialLogin('google')">
+        <svg width="18" height="18" viewBox="0 0 48 48" fill="none">
+          <path d="M44.5 20H24v8.5h11.8C34.7 33.9 29.8 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6-6C34.6 5.1 29.6 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21c10.5 0 20-7.5 20-21 0-1.4-.2-2.7-.5-4z" fill="#FFC107"/>
+          <path d="M6.3 14.7l7 5.1C15.2 16.6 19.3 14 24 14c3.1 0 5.9 1.1 8.1 2.9l6-6C34.6 5.1 29.6 3 24 3 16.3 3 9.7 7.9 6.3 14.7z" fill="#FF3D00"/>
+          <path d="M24 45c5.5 0 10.5-1.9 14.4-5.1l-6.7-5.5C29.5 35.9 26.9 37 24 37c-5.7 0-10.6-3.9-12.3-9.2l-7 5.4C8.1 40.3 15.4 45 24 45z" fill="#4CAF50"/>
+          <path d="M44.5 20H24v8.5h11.8c-.8 2.4-2.3 4.4-4.3 5.8l6.7 5.5C43.1 36.3 45 31 45 24c0-1.4-.2-2.7-.5-4z" fill="#1976D2"/>
+        </svg>
+        Continue with Google
+      </button>
+      <button class="btn-social" onclick="socialLogin('github')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58v-2.03c-3.34.73-4.04-1.61-4.04-1.61-.54-1.38-1.33-1.75-1.33-1.75-1.09-.74.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.49 1 .11-.78.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.17 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 3-.4 11.5 11.5 0 0 1 3 .4c2.28-1.55 3.29-1.23 3.29-1.23.66 1.65.25 2.87.12 3.17.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.63-5.48 5.92.43.37.81 1.1.81 2.22v3.29c0 .32.22.7.83.58A12.003 12.003 0 0 0 24 12C24 5.37 18.63 0 12 0z"/>
+        </svg>
+        Continue with GitHub
+      </button>
+    </div>
+
+    <div class="social-divider">or use email</div>
+
     <div class="auth-tabs">
-      <button class="auth-tab active" onclick="showAuthTab('login')">Sign In</button>
+      <button class="auth-tab active" onclick="showAuthTab('login')">Password</button>
       <button class="auth-tab" onclick="showAuthTab('signup')">Sign Up</button>
+      <button class="auth-tab" onclick="showAuthTab('otp')">One-time code</button>
     </div>
 
     <form id="login-form" onsubmit="doLogin(event)">
@@ -392,6 +523,36 @@
       <div id="signup-error" class="error-msg" hidden></div>
       <button type="submit" class="btn-primary w-full">Create Account — $2.00 free credit</button>
     </form>
+
+    <!-- OTP form: step 1 = enter email, step 2 = enter code -->
+    <div id="otp-form" hidden>
+      <div id="otp-step1" class="otp-step">
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="otp-email" class="input" placeholder="you@example.com">
+        </div>
+        <div id="otp-error" class="error-msg" hidden></div>
+        <button class="btn-primary w-full" onclick="requestOtp()">Send Code</button>
+      </div>
+
+      <div id="otp-step2" class="otp-step" hidden>
+        <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px;text-align:center">
+          Enter the 6-digit code sent to <strong id="otp-email-display"></strong>
+        </p>
+        <div class="otp-code-inputs">
+          <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]">
+          <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]">
+          <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]">
+          <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]">
+          <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]">
+          <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]">
+        </div>
+        <div id="otp-verify-error" class="error-msg" hidden></div>
+        <div class="otp-resend">
+          Didn't get it? <button onclick="showAuthTab('otp')">Resend</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -550,11 +711,18 @@
         </div>
       </div>
 
+      <h2 style="font-size:15px;font-weight:600;margin-bottom:16px">Top Up Credits</h2>
+      <div id="packages-grid" class="packages-grid">
+        <!-- filled by loadPackages() -->
+        <div class="empty-state" style="grid-column:1/-1"><p>Loading packages…</p></div>
+      </div>
+
       <h2 style="font-size:15px;font-weight:600;margin-bottom:12px;color:var(--text-muted)">Recent Sessions</h2>
       <div id="sessions-list" class="card-list">
         <div class="empty-state"><div class="empty-icon">📊</div><p>No sessions yet</p></div>
       </div>
     </div>
+
 
   </main>
 </div>
@@ -589,14 +757,98 @@
   // ── Auth ─────────────────────────────────────────────────────────────────────
 
   function showAuthTab(tab) {
-    document.querySelectorAll('.auth-tab').forEach((t, i) =>
-      t.classList.toggle('active', (i === 0) === (tab === 'login'))
-    );
-    document.getElementById('login-form').hidden = tab !== 'login';
+    const tabs = document.querySelectorAll('.auth-tab');
+    tabs[0].classList.toggle('active', tab === 'login');
+    tabs[1].classList.toggle('active', tab === 'signup');
+    tabs[2].classList.toggle('active', tab === 'otp');
+    document.getElementById('login-form').hidden  = tab !== 'login';
     document.getElementById('signup-form').hidden = tab !== 'signup';
-    document.getElementById('login-error').hidden = true;
+    document.getElementById('otp-form').hidden    = tab !== 'otp';
+    // Reset OTP to step 1 when switching to otp tab
+    if (tab === 'otp') {
+      document.getElementById('otp-step1').hidden = false;
+      document.getElementById('otp-step2').hidden = true;
+      document.getElementById('otp-error').hidden = true;
+    }
+    document.getElementById('login-error').hidden  = true;
     document.getElementById('signup-error').hidden = true;
   }
+
+  // ── Social login ──────────────────────────────────────────────────────────────
+
+  function socialLogin(provider) {
+    window.location.href = `/auth/oauth/${provider}`;
+  }
+
+  // Handle oauth_token in fragment on page load (set by OAuth callback redirect)
+  function checkOAuthFragment() {
+    const hash = window.location.hash;
+    if (!hash) return;
+    const params = new URLSearchParams(hash.slice(1));
+    const token = params.get('oauth_token');
+    if (token) {
+      jwt = token;
+      localStorage.setItem('prepatu_jwt', jwt);
+      // Clean up fragment
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+      showApp();
+    }
+  }
+
+  // ── OTP ───────────────────────────────────────────────────────────────────────
+
+  async function requestOtp() {
+    const email = document.getElementById('otp-email').value.trim();
+    const errEl = document.getElementById('otp-error');
+    errEl.hidden = true;
+    if (!email) { errEl.textContent = 'Please enter your email.'; errEl.hidden = false; return; }
+
+    // Flip to step 2 immediately
+    document.getElementById('otp-email-display').textContent = email;
+    document.getElementById('otp-step1').hidden = true;
+    document.getElementById('otp-step2').hidden = false;
+
+    // Wire up OTP digit inputs
+    const digits = document.querySelectorAll('.otp-digit');
+    digits.forEach((inp, i) => {
+      inp.value = '';
+      inp.oninput = () => {
+        if (inp.value.length === 1 && i < digits.length - 1) digits[i + 1].focus();
+        const code = Array.from(digits).map(d => d.value).join('');
+        if (code.length === 6) verifyOtp(email, code);
+      };
+      inp.onkeydown = (e) => {
+        if (e.key === 'Backspace' && !inp.value && i > 0) digits[i - 1].focus();
+      };
+    });
+    digits[0].focus();
+
+    // Fire API in background — show error and go back to step 1 if it fails
+    api('POST', '/auth/otp/request', { email }).catch(err => {
+      document.getElementById('otp-step1').hidden = false;
+      document.getElementById('otp-step2').hidden = true;
+      errEl.textContent = err.message;
+      errEl.hidden = false;
+    });
+  }
+
+  async function verifyOtp(email, code) {
+    const errEl = document.getElementById('otp-verify-error');
+    errEl.hidden = true;
+    try {
+      const { access_token } = await api('POST', '/auth/otp/verify', { email, code });
+      jwt = access_token;
+      localStorage.setItem('prepatu_jwt', jwt);
+      showApp();
+    } catch (err) {
+      errEl.textContent = err.message;
+      errEl.hidden = false;
+      // Clear digits
+      document.querySelectorAll('.otp-digit').forEach(d => { d.value = ''; });
+      document.querySelector('.otp-digit').focus();
+    }
+  }
+
 
   async function doLogin(e) {
     e.preventDefault();
@@ -667,7 +919,7 @@
     if (tab === 'apikeys') loadKeys();
     if (tab === 'flows')   loadFlows();
     if (tab === 'providers') loadProviders();
-    if (tab === 'credits') loadCredits();
+    if (tab === 'credits') { loadCredits(); loadPackages(); }
   }
 
   // ── API Keys ─────────────────────────────────────────────────────────────────
@@ -891,6 +1143,75 @@
     }
   }
 
+  // ── Credit packages + Freemius checkout ──────────────────────────────────────
+
+  let _checkoutConfig = null;
+
+  async function loadCheckoutConfig() {
+    if (_checkoutConfig) return _checkoutConfig;
+    try {
+      _checkoutConfig = await api('GET', '/v1/config/checkout');
+    } catch (e) {
+      _checkoutConfig = {};
+    }
+    return _checkoutConfig;
+  }
+
+  async function loadPackages() {
+    const gridEl = document.getElementById('packages-grid');
+    try {
+      const pkgs = await api('GET', '/v1/credits/packages');
+      const popular = 'standard';
+      gridEl.innerHTML = pkgs.map(p => `
+        <div class="pkg-card ${p.id === popular ? 'popular' : ''}">
+          ${p.id === popular ? '<div class="pkg-popular-badge">Most Popular</div>' : ''}
+          <div class="pkg-name">${escHtml(p.name)}</div>
+          <div class="pkg-price">$${p.price_usd.toFixed(2)}</div>
+          <div class="pkg-price-sub">one-time</div>
+          <div class="pkg-credits">+${p.credits.toLocaleString()} credits</div>
+          <div class="pkg-desc">${escHtml(p.description)}</div>
+          <button class="btn-primary w-full" onclick="buyPackage('${escHtml(p.id)}')">Buy Now</button>
+        </div>
+      `).join('');
+    } catch (err) {
+      gridEl.innerHTML = `<div class="error-msg" style="grid-column:1/-1">${escHtml(err.message)}</div>`;
+    }
+  }
+
+  async function buyPackage(packageId) {
+    const cfg = await loadCheckoutConfig();
+    const pluginId = cfg.freemius_plugin_id;
+    const planId   = cfg.plans?.[packageId];
+
+    if (!pluginId || !planId) {
+      alert('Payment system not yet configured. Please contact support.');
+      return;
+    }
+
+    if (!window.FS?.Checkout) {
+      alert('Freemius checkout failed to load. Please disable ad-blockers and retry.');
+      return;
+    }
+
+    const handler = new FS.Checkout({
+      product_id: pluginId,
+      plan_id:    planId,
+      public_key: cfg.freemius_public_key,
+      ...(cfg.freemius_sandbox_params ? { sandbox: cfg.freemius_sandbox_params } : {}),
+    });
+
+    handler.open({
+      name:     'Prepatu',
+      licenses: 1,
+      purchaseCompleted: () => {
+        setTimeout(() => { switchTab('credits'); }, 2000);
+      },
+      success: () => {
+        setTimeout(() => { switchTab('credits'); }, 2000);
+      },
+    });
+  }
+
   // ── Utils ────────────────────────────────────────────────────────────────────
 
   function escHtml(str) {
@@ -911,9 +1232,15 @@
 
   // ── Init ─────────────────────────────────────────────────────────────────────
 
+  checkOAuthFragment();
+
   if (jwt) {
     showApp();
   }
 </script>
+
+<!-- jQuery (required by Freemius checkout) + Freemius checkout JS -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+<script src="https://checkout.freemius.com/js/v1/"></script>
 </body>
 </html>

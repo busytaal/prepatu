@@ -12,7 +12,6 @@ class Settings(BaseSettings):
     jwt_expire_minutes: int = 60 * 24 * 7  # 7 days
 
     # ── Database ──────────────────────────────────────────────────────────────
-    # PostgreSQL DSN.  Example: postgresql://user:pass@host:5432/dbname
     database_url: str = "postgresql://prepatu:prepatu@localhost:5432/prepatu_cloud"
     db_pool_min: int = 2
     db_pool_max: int = 10
@@ -23,18 +22,44 @@ class Settings(BaseSettings):
 
     # ── Managed backend ───────────────────────────────────────────────────────
     public_base_url: str = "ws://localhost:4000"
+    frontend_url: str = "https://prepatu.com"
+
+    # ── Email (Zoho SMTP) ─────────────────────────────────────────────────────
+    smtp_host: str = "smtp.zoho.com"
+    smtp_port: int = 587
+    smtp_user: str = ""           # e.g. noreply@busytaal.com
+    smtp_password: str = ""
+    email_from: str = "Prepatu <noreply@busytaal.com>"
+    email_require_verification: bool = True
+
+    # ── OAuth — Google ────────────────────────────────────────────────────────
+    google_client_id: str = ""
+    google_client_secret: str = ""
+
+    # ── OAuth — GitHub ────────────────────────────────────────────────────────
+    github_client_id: str = ""
+    github_client_secret: str = ""
+
+    # ── Payments — Paddle ─────────────────────────────────────────────────────
+    paddle_webhook_secret: str = ""
+    paddle_environment: str = "sandbox"    # "sandbox" | "production"
+
+    # ── Payments — Freemius ───────────────────────────────────────────────────
+    freemius_secret_key: str = ""
+    freemius_public_key: str = ""
+    freemius_plugin_id: str = ""          # "Product ID" from Freemius dashboard (their JS SDK calls it plugin_id)
+    freemius_plan_starter: str = ""       # numeric plan ID for Starter ($5)
+    freemius_plan_standard: str = ""      # numeric plan ID for Standard ($15)
+    freemius_plan_pro: str = ""           # numeric plan ID for Pro ($40)
+    freemius_sandbox: bool = False         # set True to enable test mode (skips webhook sig + credits sandbox purchases)
 
     # ── Logging & Observability ───────────────────────────────────────────────
-    # Set LOG_JSON=true in production to emit structured JSON logs.
     log_json: bool = False
     log_level: str = "INFO"
-    # Optional: OTLP gRPC endpoint for distributed tracing (e.g. http://otel-collector:4317).
-    # Leave empty to disable OpenTelemetry.
     otel_endpoint: str = ""
-    # Optional bearer token to protect /metrics.  Leave empty = open.
     metrics_token: str = ""
 
-    # ── Master provider keys (Prepatu-owned, used when user hasn't set their own) ──
+    # ── Master provider keys ──────────────────────────────────────────────────
     master_deepgram_key: str = ""
     master_openai_key: str = ""
     master_openrouter_key: str = ""

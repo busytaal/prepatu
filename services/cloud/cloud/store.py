@@ -2,12 +2,16 @@
 PostgreSQL store for the cloud service — backed by asyncpg connection pool.
 
 Tables:
-  users          — accounts
-  api_keys       — API keys per account (multiple allowed)
-  credits        — current USD-cent balance per account
-  provider_keys  — per-account provider configuration
-  sessions       — session usage records
-  flows          — per-account VFDL flow YAML documents
+  users               — accounts (hashed_pw nullable for social-only accounts)
+  api_keys            — API keys per account (multiple allowed)
+  credits             — current USD-cent balance per account
+  provider_keys       — per-account provider configuration
+  sessions            — session usage records
+  flows               — per-account VFDL flow YAML documents
+  email_verifications — one-time tokens for email verification
+  otp_codes           — short-lived 6-digit OTP codes for passwordless login
+  oauth_accounts      — links social provider identities to users
+  credit_purchases    — idempotent record of payment webhook credits
 """
 
 from __future__ import annotations
@@ -73,6 +77,51 @@ _CREATE_STATEMENTS = [
         name         TEXT NOT NULL,
         yaml_content TEXT NOT NULL,
         created_at   DOUBLE PRECISION NOT NULL
+    )
+    """,
+    # ── Auth extensions ──────────────────────────────────────────────────────
+    """
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT false
+    """,
+    # Make hashed_pw nullable so social-only accounts can exist
+    """
+    ALTER TABLE users ALTER COLUMN hashed_pw DROP NOT NULL
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS email_verifications (
+        token       TEXT PRIMARY KEY,
+        user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        expires_at  DOUBLE PRECISION NOT NULL
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS otp_codes (
+        id          TEXT PRIMARY KEY,
+        email       TEXT NOT NULL,
+        code_hash   TEXT NOT NULL,
+        expires_at  DOUBLE PRECISION NOT NULL,
+        used        BOOLEAN NOT NULL DEFAULT false
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS oauth_accounts (
+        id               TEXT PRIMARY KEY,
+        user_id          TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        provider         TEXT NOT NULL,
+        provider_user_id TEXT NOT NULL,
+        UNIQUE (provider, provider_user_id)
+    )
+    """,
+    # ── Payments ─────────────────────────────────────────────────────────────
+    """
+    CREATE TABLE IF NOT EXISTS credit_purchases (
+        id              TEXT PRIMARY KEY,
+        user_id         TEXT NOT NULL REFERENCES users(id),
+        provider        TEXT NOT NULL,
+        transaction_id  TEXT UNIQUE NOT NULL,
+        amount_usd_cents  INT NOT NULL,
+        credits_granted   INT NOT NULL,
+        created_at      DOUBLE PRECISION NOT NULL
     )
     """,
 ]
