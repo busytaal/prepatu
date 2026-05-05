@@ -1,51 +1,44 @@
 import type {ReactNode} from 'react';
+import Link from '@docusaurus/Link';
+import clsx from 'clsx';
 import styles from './styles.module.css';
 
-type FeatureItem = {
-  tag: string;
-  title: string;
-  description: ReactNode;
-};
+const FLOW_YAML = `states:
+  greet:
+    say: "Hi! What can I help you with?"
+    listen: true
+    transitions:
+      - match: "book"
+        goto: booking
+      - goto: fallback
 
-const FeatureList: FeatureItem[] = [
-  {
-    tag: 'Engine',
-    title: 'Declarative Flow YAML',
-    description:
-      'Define voice conversations as state machines in YAML — states, transitions, guards, and tool calls. No custom orchestration code.',
-  },
-  {
-    tag: 'Runtime',
-    title: 'Pipecat Pipeline',
-    description:
-      'Real-time voice pipeline with VAD, STT, LLM, and TTS wired together. Swap providers without changing your flows.',
-  },
-  {
-    tag: 'SDK',
-    title: 'Browser & Mobile',
-    description:
-      'WebSocket and WebRTC transports with automatic QoS monitoring and seamless transport switching built into the client SDK.',
-  },
-];
+  booking:
+    say: "Sure, what date works for you?"
+    listen: true
+    transitions:
+      - goto: confirm
 
-function Feature({tag, title, description}: FeatureItem) {
-  return (
-    <div className={styles.featureCard}>
-      <span className={styles.tag}>{tag}</span>
-      <h3 className={styles.featureTitle}>{title}</h3>
-      <p className={styles.featureDesc}>{description}</p>
-    </div>
-  );
-}
+  confirm:
+    say: "Got it — I'll book that for you."
+    goto: end`;
 
 export default function HomepageFeatures(): ReactNode {
   return (
     <section className={styles.features}>
       <div className="container">
-        <div className={styles.featureGrid}>
-          {FeatureList.map((props, idx) => (
-            <Feature key={idx} {...props} />
-          ))}
+        <p className={styles.tagline}>
+          Describe your voice conversation in YAML. Prepatu handles the rest.
+        </p>
+        <div className={styles.codeBlock}>
+          <pre><code>{FLOW_YAML}</code></pre>
+        </div>
+        <div className={styles.ctas}>
+          <Link className={clsx('button button--primary button--lg')} to="/docs/flows/first-flow">
+            Start Building
+          </Link>
+          <Link className={clsx('button button--secondary button--lg')} to="/docs/">
+            Read the Docs
+          </Link>
         </div>
       </div>
     </section>
